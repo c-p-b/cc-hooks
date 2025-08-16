@@ -114,3 +114,16 @@ export interface PlatformConfig {
   pathSeparator: string;    // / or \
   taskKillCommand?: string; // Windows-specific
 }
+
+/** Session log entry for debugging and visibility. */
+export interface LogEntry {
+  timestamp: string;
+  session_id: string;
+  hook: string;
+  event: ClaudeEventName;
+  exit_code: number | null;
+  duration: number;
+  truncated: boolean;
+  timed_out: boolean;
+  flow_control: FlowControlAction;
+}

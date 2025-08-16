@@ -1,13 +1,16 @@
-import { Readable } from 'stream';
+import { promises as fs } from 'fs';
+import * as path from 'path';
 import { 
   HookDefinition, 
   ClaudeHookEvent, 
   HookExecutionResult,
-  ResourceLimits
+  ResourceLimits,
+  LogEntry
 } from '../common/types';
 import { ProcessManager } from './process-manager';
 import { StreamLimiter } from './stream-limiter';
 import { ResultMapper, MappedResult } from './result-mapper';
+import { LogCleaner } from './log-cleaner';
 import { DEFAULT_RESOURCE_LIMITS } from '../common/constants';
 import { getLogger } from '../common/logger';
 import { HookExecutionError } from '../common/errors';
@@ -43,6 +46,9 @@ export class HookExecutor {
    * Execute a single hook with resource limits.
    */
   async execute(hook: HookDefinition, context: ExecutionContext): Promise<HookResult> {
+    // Trigger cleanup opportunistically (async, non-blocking)
+    LogCleaner.cleanupIfNeeded(context.event.session_id);
+    
     const startTime = Date.now();
     const processId = `${hook.name}-${startTime}`;
     
@@ -151,7 +157,8 @@ export class HookExecutor {
 
       this.logger.log(`Hook '${hook.name}' completed in ${duration}ms with exit code ${exitCode}`);
 
-      return {
+      // Log the execution result
+      const result: HookResult = {
         ...mappedResult,
         hook,
         duration,
@@ -160,10 +167,15 @@ export class HookExecutor {
         timedOut,
         truncated
       };
+      
+      // Log to session file (async, best effort)
+      this.logResult(result, context.event).catch(() => {
+        // Ignore logging errors
+      });
+      
+      return result;
 
     } catch (error) {
-      const duration = Date.now() - startTime;
-      
       // Clean up timeout
       if (timeoutHandle) {
         clearTimeout(timeoutHandle);
@@ -206,6 +218,33 @@ export class HookExecutor {
     );
 
     return Promise.all(promises);
+  }
+
+  /**
+   * Log a hook execution result to the session file.
+   */
+  private async logResult(result: HookResult, event: ClaudeHookEvent): Promise<void> {
+    const sessionsDir = LogCleaner.getSessionsDir();
+    const logFile = path.join(sessionsDir, `session-${event.session_id}.jsonl`);
+    
+    // Ensure directory exists
+    await fs.mkdir(sessionsDir, { recursive: true });
+    
+    // Create log entry
+    const logEntry: LogEntry = {
+      timestamp: new Date().toISOString(),
+      session_id: event.session_id,
+      hook: result.hook.name,
+      event: event.hook_event_name,
+      exit_code: result.exitCode,
+      duration: result.duration,
+      truncated: result.truncated,
+      timed_out: result.timedOut,
+      flow_control: result.flowControl
+    };
+    
+    // Append to session log (atomic append)
+    await fs.appendFile(logFile, JSON.stringify(logEntry) + '\n');
   }
 
   /**

@@ -37,13 +37,17 @@ export class ProcessManager {
       throw new Error('Cannot spawn new processes during shutdown');
     }
 
+    if (command.length === 0) {
+      throw new Error('Command array cannot be empty');
+    }
+
     // Use process groups on Unix for clean kill of child trees
     const spawnOptions: SpawnOptions = {
       ...options,
       detached: !IS_WINDOWS,  // Create new process group on Unix
     };
 
-    const child = spawn(command[0], command.slice(1), spawnOptions);
+    const child = spawn(command[0]!, command.slice(1), spawnOptions);
     
     this.processes.set(id, {
       process: child,
@@ -116,7 +120,7 @@ export class ProcessManager {
     this.logger.log(`Cleaning up ${this.processes.size} active processes`);
 
     // Phase 1: Send SIGTERM for graceful shutdown
-    for (const [id, entry] of this.processes) {
+    for (const [, entry] of this.processes) {
       const { process: proc } = entry;
       
       if (IS_WINDOWS) {
