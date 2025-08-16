@@ -18,9 +18,9 @@ export const DEFAULT_HOOKS_PATH = path.join(CLAUDE_DIR, HOOKS_DIR);
 export const DEFAULT_LOGS_PATH = path.join(CLAUDE_DIR, LOGS_DIR);
 export const DEFAULT_LOG_FILE_PATH = path.join(DEFAULT_LOGS_PATH, DEFAULT_LOG_FILE);
 
-// Activation pointer
-export const ACTIVATION_POINTER_FILE = 'active';
-export const ACTIVATION_POINTER_CONTENT = 'cc-hooks run';
+// Settings.json integration
+export const ORCHESTRATOR_COMMAND = 'cc-hooks run';
+export const SETTINGS_BACKUP_SUFFIX = '.backup';
 
 // Resource limits
 export const DEFAULT_RESOURCE_LIMITS: ResourceLimits = {
