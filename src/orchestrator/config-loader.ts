@@ -39,7 +39,7 @@ export class ConfigLoader {
     try {
       const content = readFileSync(path, 'utf-8');
       const rawConfig = JSON.parse(content);
-      return this.validate(rawConfig);
+      return this.validate(rawConfig, path);
     } catch (error) {
       if (error instanceof ConfigValidationError) {
         throw error;
@@ -55,9 +55,9 @@ export class ConfigLoader {
    * Validate a configuration object and return a typed HooksConfigFile.
    * Throws ConfigValidationError if validation fails.
    */
-  validate(config: unknown): HooksConfigFile {
+  validate(config: unknown, configPath = 'config'): HooksConfigFile {
     if (!config || typeof config !== 'object') {
-      throw new ConfigValidationError('unknown', ['Configuration must be an object']);
+      throw new ConfigValidationError(configPath, ['Configuration must be an object']);
     }
 
     const cfg = config as any;
@@ -65,19 +65,19 @@ export class ConfigLoader {
     // Validate optional logging config
     if (cfg.logging !== undefined) {
       if (typeof cfg.logging !== 'object') {
-        throw new ConfigValidationError('unknown', ['logging must be an object']);
+        throw new ConfigValidationError(configPath, ['logging must be an object']);
       }
       if (!cfg.logging.level || !ConfigLoader.VALID_LOG_LEVELS.has(cfg.logging.level)) {
-        throw new ConfigValidationError('unknown', [`logging.level must be one of: ${Array.from(ConfigLoader.VALID_LOG_LEVELS).join(', ')}`]);
+        throw new ConfigValidationError(configPath, [`logging.level must be one of: ${Array.from(ConfigLoader.VALID_LOG_LEVELS).join(', ')}`]);
       }
       if (cfg.logging.path !== undefined && typeof cfg.logging.path !== 'string') {
-        throw new ConfigValidationError('unknown', ['logging.path must be a string']);
+        throw new ConfigValidationError(configPath, ['logging.path must be a string']);
       }
     }
 
     // Validate hooks array
     if (!Array.isArray(cfg.hooks)) {
-      throw new ConfigValidationError('unknown', ['hooks must be an array']);
+      throw new ConfigValidationError(configPath, ['hooks must be an array']);
     }
 
     const validatedHooks: HookDefinition[] = [];
@@ -86,7 +86,7 @@ export class ConfigLoader {
       try {
         validatedHooks.push(this.validateHook(hook));
       } catch (error) {
-        throw new ConfigValidationError('unknown', [`Invalid hook at index ${i}: ${error}`]);
+        throw new ConfigValidationError(configPath, [`Invalid hook at index ${i}: ${error}`]);
       }
     }
 

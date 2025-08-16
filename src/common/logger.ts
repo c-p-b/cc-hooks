@@ -22,10 +22,10 @@ export class Logger {
     if (this.level === 'off') return;
     
     const message = `Event received: ${event.hook_event_name}`;
-    this.log('INFO', message);
+    this.logToFile('INFO', message);
     
     if (this.level === 'verbose') {
-      this.log('DEBUG', `Full event data: ${JSON.stringify(event, null, 2)}`);
+      this.logToFile('DEBUG', `Full event data: ${JSON.stringify(event, null, 2)}`);
     }
   }
 
@@ -36,10 +36,10 @@ export class Logger {
     if (this.level === 'off') return;
     
     const message = `Executing hook: ${hook.name}`;
-    this.log('INFO', message);
+    this.logToFile('INFO', message);
     
     if (this.level === 'verbose') {
-      this.log('DEBUG', `Hook config: ${JSON.stringify(hook, null, 2)}`);
+      this.logToFile('DEBUG', `Hook config: ${JSON.stringify(hook, null, 2)}`);
     }
   }
 
@@ -50,13 +50,13 @@ export class Logger {
     if (this.level === 'off') return;
     
     if (result.success) {
-      this.log('INFO', `Hook completed: ${hook.name}`);
+      this.logToFile('INFO', `Hook completed: ${hook.name}`);
     } else {
       const exitInfo = result.exitCode !== undefined ? ` (exit: ${result.exitCode})` : '';
-      this.log('ERROR', `Hook failed: ${hook.name}${exitInfo}`);
+      this.logToFile('ERROR', `Hook failed: ${hook.name}${exitInfo}`);
       
       if (result.error && this.level === 'verbose') {
-        this.log('DEBUG', `Error details: ${result.error.stack || result.error.message}`);
+        this.logToFile('DEBUG', `Error details: ${result.error.stack || result.error.message}`);
       }
     }
   }
@@ -66,10 +66,10 @@ export class Logger {
    */
   logError(error: Error): void {
     if (this.level === 'off' || this.level === 'errors' || this.level === 'verbose') {
-      this.log('ERROR', error.message);
+      this.logToFile('ERROR', error.message);
       
       if (this.level === 'verbose' && error.stack) {
-        this.log('DEBUG', `Stack trace: ${error.stack}`);
+        this.logToFile('DEBUG', `Stack trace: ${error.stack}`);
       }
     }
   }
@@ -79,7 +79,7 @@ export class Logger {
    */
   logInfo(message: string): void {
     if (this.level === 'verbose') {
-      this.log('INFO', message);
+      this.logToFile('INFO', message);
     }
   }
 
@@ -88,8 +88,24 @@ export class Logger {
    */
   logDebug(message: string): void {
     if (this.level === 'verbose') {
-      this.log('DEBUG', message);
+      this.logToFile('DEBUG', message);
     }
+  }
+
+  /**
+   * Log a warning message
+   */
+  logWarning(message: string): void {
+    if (this.level === 'errors' || this.level === 'verbose') {
+      this.logToFile('WARN', message);
+    }
+  }
+
+  /**
+   * Generic log method for internal use
+   */
+  log(message: string): void {
+    this.logInfo(message);
   }
 
   /**
@@ -138,9 +154,9 @@ export class Logger {
   }
 
   /**
-   * Core logging function
+   * Core logging function to file
    */
-  private log(level: string, message: string): void {
+  private logToFile(level: string, message: string): void {
     const timestamp = new Date().toISOString();
     const logLine = `[${timestamp}] [${level}] ${message}\n`;
     
