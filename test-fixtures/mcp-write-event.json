@@ -1,0 +1,11 @@
+{
+  "hook_event_name": "PreToolUse",
+  "session_id": "test-mcp-write",
+  "transcript_path": "/tmp/test.jsonl",
+  "cwd": "/Users/cpb/git/cc-hooks",
+  "tool_name": "mcp__filesystem__write_file",
+  "tool_input": {
+    "path": "/tmp/test.txt",
+    "content": "test"
+  }
+}

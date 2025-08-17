@@ -1,0 +1,43 @@
+{
+  "hooks": [
+    {
+      "name": "notebook-wildcard",
+      "outputFormat": "text",
+      "matcher": "Notebook.*",
+      "command": ["echo", "Matched Notebook wildcard"],
+      "events": ["PreToolUse"],
+      "priority": 10,
+      "exitCodeMap": {"0": "success"},
+      "message": "Notebook tool matched"
+    },
+    {
+      "name": "mcp-memory-all",
+      "outputFormat": "text",
+      "matcher": "mcp__memory__.*",
+      "command": ["echo", "Matched MCP memory operation"],
+      "events": ["PreToolUse"],
+      "priority": 20,
+      "exitCodeMap": {"0": "success"},
+      "message": "MCP memory tool"
+    },
+    {
+      "name": "mcp-any-write",
+      "outputFormat": "text",
+      "matcher": "mcp__.*__write.*",
+      "command": ["echo", "Matched MCP write operation"],
+      "events": ["PreToolUse"],
+      "priority": 30,
+      "exitCodeMap": {"0": "success"},
+      "message": "MCP write operation"
+    },
+    {
+      "name": "timeout-test",
+      "outputFormat": "text",
+      "command": ["sh", "-c", "sleep 2; echo 'Should timeout'"],
+      "events": ["Stop"],
+      "timeout": 1,
+      "exitCodeMap": {"0": "success"},
+      "message": "Testing 1 second timeout"
+    }
+  ]
+}

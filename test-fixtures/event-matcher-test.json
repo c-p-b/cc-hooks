@@ -1,0 +1,40 @@
+{
+  "hooks": [
+    {
+      "name": "manual-compact",
+      "outputFormat": "text",
+      "matcher": "manual",
+      "command": ["echo", "Manual compact triggered"],
+      "events": ["PreCompact"],
+      "exitCodeMap": {"0": "success"},
+      "message": "Manual compact"
+    },
+    {
+      "name": "auto-compact",
+      "outputFormat": "text",
+      "matcher": "auto",
+      "command": ["echo", "Auto compact triggered"],
+      "events": ["PreCompact"],
+      "exitCodeMap": {"0": "success"},
+      "message": "Auto compact"
+    },
+    {
+      "name": "resume-session",
+      "outputFormat": "text",
+      "matcher": "resume",
+      "command": ["echo", "Resume session started"],
+      "events": ["SessionStart"],
+      "exitCodeMap": {"0": "success"},
+      "message": "Resume session"
+    },
+    {
+      "name": "startup-session",
+      "outputFormat": "text",
+      "matcher": "startup",
+      "command": ["echo", "Fresh startup session"],
+      "events": ["SessionStart"],
+      "exitCodeMap": {"0": "success"},
+      "message": "Startup session"
+    }
+  ]
+}

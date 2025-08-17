@@ -1,0 +1,11 @@
+{
+  "hook_event_name": "PreToolUse",
+  "session_id": "test-wildcard",
+  "transcript_path": "/tmp/test.jsonl",
+  "cwd": "/Users/cpb/git/cc-hooks",
+  "tool_name": "NotebookEdit",
+  "tool_input": {
+    "notebook_path": "/tmp/test.ipynb",
+    "cell_id": "123"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "logging": {
+    "level": "verbose"
+  },
+  "hooks": [
+    {
+      "name": "test-echo",
+      "outputFormat": "text",
+      "command": ["echo", "Hello from test hook"],
+      "events": ["PostToolUse"],
+      "exitCodeMap": {
+        "0": "success"
+      },
+      "message": "Test hook executed successfully"
+    }
+  ]
+}

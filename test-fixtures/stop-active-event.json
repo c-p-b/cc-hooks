@@ -1,0 +1,7 @@
+{
+  "hook_event_name": "Stop",
+  "session_id": "test-loop",
+  "transcript_path": "/tmp/test.jsonl",
+  "cwd": "/Users/cpb/git/cc-hooks",
+  "stop_hook_active": true
+}

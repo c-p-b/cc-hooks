@@ -1,0 +1,11 @@
+{
+  "hooks": [
+    {
+      "name": "stop-blocker",
+      "outputFormat": "structured",
+      "command": ["sh", "-c", "echo '{\"decision\": \"block\", \"reason\": \"Testing stop block\"}'"],
+      "events": ["Stop"],
+      "priority": 10
+    }
+  ]
+}

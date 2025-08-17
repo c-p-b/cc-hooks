@@ -1,0 +1,8 @@
+{
+  "hook_event_name": "PreCompact",
+  "session_id": "test-compact",
+  "transcript_path": "/tmp/test.jsonl",
+  "cwd": "/Users/cpb/git/cc-hooks",
+  "trigger": "manual",
+  "custom_instructions": "Keep only important context"
+}

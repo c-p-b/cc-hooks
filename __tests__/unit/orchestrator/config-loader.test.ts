@@ -231,7 +231,7 @@ describe('ConfigLoader', () => {
             description: 'List files',
             events: ['Stop'],
             priority: 50,
-            timeout: 5000,
+            timeout: 5,  // 5 seconds (will be converted to 5000ms)
             outputFormat: 'text',
             exitCodeMap: { '0': 'success', 'default': 'non-blocking-error' },
             message: 'Done',

@@ -1,0 +1,34 @@
+{
+  "hooks": [
+    {
+      "name": "prompt-validator",
+      "outputFormat": "structured",
+      "command": ["sh", "-c", "echo '{\"hookSpecificOutput\": {\"hookEventName\": \"UserPromptSubmit\", \"additionalContext\": \"User context: Testing prompt submission\"}}'"],
+      "events": ["UserPromptSubmit"],
+      "priority": 10
+    },
+    {
+      "name": "pretool-permission",
+      "outputFormat": "structured",
+      "command": ["sh", "-c", "echo '{\"permissionDecision\": \"deny\", \"permissionDecisionReason\": \"Dangerous operation blocked\"}'"],
+      "events": ["PreToolUse"],
+      "matcher": "rm|delete",
+      "priority": 1
+    },
+    {
+      "name": "pretool-allow",
+      "outputFormat": "structured",
+      "command": ["sh", "-c", "echo '{\"permissionDecision\": \"allow\", \"permissionDecisionReason\": \"Safe operation approved\"}'"],
+      "events": ["PreToolUse"],
+      "matcher": "Read|LS",
+      "priority": 2
+    },
+    {
+      "name": "continue-false-test",
+      "outputFormat": "structured",
+      "command": ["sh", "-c", "echo '{\"continue\": false, \"stopReason\": \"Emergency stop activated\"}'"],
+      "events": ["Stop"],
+      "priority": 5
+    }
+  ]
+}

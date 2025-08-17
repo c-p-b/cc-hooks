@@ -17,6 +17,8 @@
     "build": "tsc",
     "clean": "rm -rf dist",
     "test": "jest",
+    "test:unit": "jest __tests__/unit",
+    "test:integration": "jest __tests__/integration",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "lint": "eslint src --ext .ts",

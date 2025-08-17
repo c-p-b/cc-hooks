@@ -1,0 +1,42 @@
+{
+  "hooks": [
+    {
+      "name": "success-hook",
+      "outputFormat": "text",
+      "command": ["echo", "✅ This hook succeeds"],
+      "events": ["PostToolUse"],
+      "priority": 10,
+      "exitCodeMap": {"0": "success"},
+      "message": "Success"
+    },
+    {
+      "name": "non-blocking-error",
+      "outputFormat": "text",
+      "command": ["sh", "-c", "echo '⚠️ Non-blocking warning'; exit 1"],
+      "events": ["PostToolUse"],
+      "priority": 20,
+      "exitCodeMap": {"1": "non-blocking-error"},
+      "message": "Warning: Check detected an issue but continuing",
+      "fixInstructions": "Review the warning but no immediate action required"
+    },
+    {
+      "name": "blocking-error",
+      "outputFormat": "text",
+      "command": ["sh", "-c", "echo '🛑 BLOCKING ERROR!'; exit 2"],
+      "events": ["PostToolUse"],
+      "priority": 30,
+      "exitCodeMap": {"2": "blocking-error"},
+      "message": "ERROR: Critical issue detected - execution blocked!",
+      "fixInstructions": "Fix this immediately before continuing"
+    },
+    {
+      "name": "another-success",
+      "outputFormat": "text",
+      "command": ["echo", "✅ This won't run due to blocking error"],
+      "events": ["PostToolUse"],
+      "priority": 40,
+      "exitCodeMap": {"0": "success"},
+      "message": "Another success"
+    }
+  ]
+}

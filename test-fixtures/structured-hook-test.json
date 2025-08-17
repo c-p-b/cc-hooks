@@ -1,0 +1,25 @@
+{
+  "hooks": [
+    {
+      "name": "structured-blocker",
+      "outputFormat": "structured",
+      "command": ["sh", "-c", "echo '{\"decision\": \"block\", \"reason\": \"Structured hook blocking execution\"}'"],
+      "events": ["PostToolUse"],
+      "priority": 10
+    },
+    {
+      "name": "structured-continue-false",
+      "outputFormat": "structured",
+      "command": ["sh", "-c", "echo '{\"continue\": false, \"stopReason\": \"Manual stop requested\"}'"],
+      "events": ["Stop"],
+      "priority": 20
+    },
+    {
+      "name": "structured-context-adder",
+      "outputFormat": "structured",
+      "command": ["sh", "-c", "echo '{\"hookSpecificOutput\": {\"hookEventName\": \"SessionStart\", \"additionalContext\": \"Project context: cc-hooks development\"}}'"],
+      "events": ["SessionStart"],
+      "priority": 30
+    }
+  ]
+}

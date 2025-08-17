@@ -25,7 +25,7 @@ export const SETTINGS_BACKUP_SUFFIX = '.backup';
 // Resource limits
 export const DEFAULT_RESOURCE_LIMITS: ResourceLimits = {
   maxOutputBytes: 1048576, // 1MB
-  timeoutMs: 30000, // 30 seconds
+  timeoutMs: 60000, // 60 seconds (matches docs default)
 };
 
 // Log rotation

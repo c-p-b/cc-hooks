@@ -38,6 +38,7 @@ program
     }
   });
 
+
 // Init command
 program
   .command('init')
@@ -107,13 +108,43 @@ program
     }
   });
 
-// Run command (internal, not shown in help by default)
+// Logs command
 program
-  .command('run', { hidden: true })
-  .description('Execute hooks for a Claude event (internal use)')
-  .action(async () => {
+  .command('logs [hookName]')
+  .description('View hook execution logs')
+  .option('-f, --follow', 'tail logs in real-time')
+  .option('-s, --session', 'show current session only')
+  .option('--failed', 'show failed hooks only')
+  .option('-n, --limit <number>', 'number of entries to show', '20')
+  .option('-v, --verbose', 'show detailed information')
+  .action(async (hookName, options) => {
     try {
-      // TODO: Import and execute RunCommand
+      const { LogsCommand } = await import('./commands/logs');
+      const command = new LogsCommand();
+      await command.execute(hookName, {
+        follow: options.follow,
+        session: options.session,
+        failed: options.failed,
+        limit: parseInt(options.limit, 10),
+        verbose: options.verbose,
+      });
+    } catch (error) {
+      handleError(error);
+    }
+  });
+
+// Run command
+program
+  .command('run')
+  .description('Execute hooks for testing or when called by Claude Code')
+  .option('-c, --config <path>', 'path to custom cc-hooks.json file (overrides auto-discovery)')
+  .option('-e, --event <event>', 'event name for testing')
+  .option('-m, --mock-data <file>', 'mock event data file for testing')
+  .action(async (options) => {
+    try {
+      const { RunCommand } = await import('./commands/run');
+      const command = new RunCommand();
+      await command.execute(options);
     } catch (error) {
       // For the run command, we need specific error handling
       // to communicate with Claude properly

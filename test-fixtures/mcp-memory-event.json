@@ -1,0 +1,10 @@
+{
+  "hook_event_name": "PreToolUse",
+  "session_id": "test-mcp",
+  "transcript_path": "/tmp/test.jsonl",
+  "cwd": "/Users/cpb/git/cc-hooks",
+  "tool_name": "mcp__memory__create_entities",
+  "tool_input": {
+    "entities": ["test1", "test2"]
+  }
+}

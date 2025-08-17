@@ -1,0 +1,31 @@
+{
+  "hooks": [
+    {
+      "name": "write-only",
+      "outputFormat": "text",
+      "matcher": "Write",
+      "command": ["echo", "Matched Write tool"],
+      "events": ["PostToolUse"],
+      "exitCodeMap": {"0": "success"},
+      "message": "Write tool hook"
+    },
+    {
+      "name": "edit-or-write",
+      "outputFormat": "text",
+      "matcher": "Write|Edit",
+      "command": ["echo", "Matched Write or Edit"],
+      "events": ["PostToolUse"],
+      "exitCodeMap": {"0": "success"},
+      "message": "Write/Edit hook"
+    },
+    {
+      "name": "all-tools",
+      "outputFormat": "text",
+      "matcher": "*",
+      "command": ["echo", "Matched any tool"],
+      "events": ["PostToolUse"],
+      "exitCodeMap": {"0": "success"},
+      "message": "Universal hook"
+    }
+  ]
+}

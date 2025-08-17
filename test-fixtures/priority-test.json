@@ -1,0 +1,39 @@
+{
+  "hooks": [
+    {
+      "name": "hook-1-high-priority",
+      "outputFormat": "text",
+      "command": ["echo", "1️⃣ High priority (10)"],
+      "events": ["PostToolUse"],
+      "priority": 10,
+      "exitCodeMap": {"0": "success"},
+      "message": "High priority hook"
+    },
+    {
+      "name": "hook-2-medium-priority",
+      "outputFormat": "text",
+      "command": ["echo", "2️⃣ Medium priority (50)"],
+      "events": ["PostToolUse"],
+      "priority": 50,
+      "exitCodeMap": {"0": "success"},
+      "message": "Medium priority hook"
+    },
+    {
+      "name": "hook-3-low-priority",
+      "outputFormat": "text",
+      "command": ["echo", "3️⃣ Low priority (100)"],
+      "events": ["PostToolUse"],
+      "priority": 100,
+      "exitCodeMap": {"0": "success"},
+      "message": "Low priority hook"
+    },
+    {
+      "name": "hook-4-default-priority",
+      "outputFormat": "text",
+      "command": ["echo", "4️⃣ Default priority (unset=100)"],
+      "events": ["PostToolUse"],
+      "exitCodeMap": {"0": "success"},
+      "message": "Default priority hook"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "hooks": [
+    {
+      "name": "write-only",
+      "outputFormat": "text",
+      "matcher": "Write",
+      "command": ["echo", "ERROR: Should NOT match Bash tool!"],
+      "events": ["PostToolUse"],
+      "priority": 1,
+      "exitCodeMap": {"0": "success"},
+      "message": "Write-only hook"
+    },
+    {
+      "name": "bash-only",
+      "outputFormat": "text",
+      "matcher": "Bash",
+      "command": ["echo", "SUCCESS: Matched Bash tool"],
+      "events": ["PostToolUse"],
+      "priority": 2,
+      "exitCodeMap": {"0": "success"},
+      "message": "Bash-only hook"
+    },
+    {
+      "name": "all-tools",
+      "outputFormat": "text",
+      "matcher": "*",
+      "command": ["echo", "Universal hook for any tool"],
+      "events": ["PostToolUse"],
+      "priority": 100,
+      "exitCodeMap": {"0": "success"},
+      "message": "Universal hook"
+    }
+  ]
+}

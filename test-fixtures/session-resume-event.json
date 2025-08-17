@@ -1,0 +1,7 @@
+{
+  "hook_event_name": "SessionStart",
+  "session_id": "test-session",
+  "transcript_path": "/tmp/test.jsonl",
+  "cwd": "/Users/cpb/git/cc-hooks",
+  "source": "resume"
+}

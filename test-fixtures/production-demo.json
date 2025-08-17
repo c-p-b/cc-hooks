@@ -1,0 +1,54 @@
+{
+  "logging": {
+    "level": "verbose"
+  },
+  "hooks": [
+    {
+      "name": "session-context-loader",
+      "outputFormat": "text",
+      "command": ["sh", "-c", "echo 'Project: cc-hooks | Branch: '$(git branch --show-current 2>/dev/null || echo 'unknown')"],
+      "events": ["SessionStart"],
+      "priority": 10,
+      "exitCodeMap": {"0": "success"},
+      "message": "Session context loaded"
+    },
+    {
+      "name": "write-protection",
+      "outputFormat": "structured",
+      "command": ["sh", "-c", "echo '{\"permissionDecision\": \"ask\", \"permissionDecisionReason\": \"Writing to critical file - please confirm\"}'"],
+      "events": ["PreToolUse"],
+      "matcher": "Write",
+      "priority": 1
+    },
+    {
+      "name": "safe-tools-auto-approve",
+      "outputFormat": "structured",
+      "command": ["sh", "-c", "echo '{\"permissionDecision\": \"allow\", \"permissionDecisionReason\": \"Read-only operation approved\"}'"],
+      "events": ["PreToolUse"],
+      "matcher": "Read|LS|Grep|Glob",
+      "priority": 2
+    },
+    {
+      "name": "typescript-linter",
+      "outputFormat": "text",
+      "command": ["sh", "-c", "if [ -f tsconfig.json ]; then echo '✅ TypeScript project detected'; else echo '⚠️ Not a TypeScript project'; exit 1; fi"],
+      "events": ["PostToolUse"],
+      "matcher": "Write|Edit",
+      "priority": 50,
+      "exitCodeMap": {
+        "0": "success",
+        "1": "non-blocking-error"
+      },
+      "message": "TypeScript check completed"
+    },
+    {
+      "name": "completion-summary",
+      "outputFormat": "text",
+      "command": ["sh", "-c", "echo '📊 Session complete at '$(date '+%H:%M')' | Files: '$(find src -name '*.ts' 2>/dev/null | wc -l | tr -d ' ')' TypeScript'"],
+      "events": ["Stop"],
+      "priority": 100,
+      "exitCodeMap": {"0": "success"},
+      "message": "Session summary"
+    }
+  ]
+}

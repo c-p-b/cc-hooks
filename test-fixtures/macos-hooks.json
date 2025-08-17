@@ -1,0 +1,40 @@
+{
+  "logging": {
+    "level": "verbose"
+  },
+  "hooks": [
+    {
+      "name": "mood-checker",
+      "outputFormat": "text",
+      "command": ["sh", "-c", "moods=('amazing' 'fantastic' 'brilliant' 'stellar' 'awesome'); mood=${moods[$((RANDOM % 5))]}; echo \"🎭 Mood check: Your code is looking $mood!\""],
+      "events": ["PostToolUse"],
+      "priority": 200,
+      "exitCodeMap": {
+        "0": "success"
+      },
+      "message": "Mood boost delivered"
+    },
+    {
+      "name": "code-stats",
+      "outputFormat": "text",
+      "command": ["sh", "-c", "lines=$(find src -name '*.ts' -exec wc -l {} + | tail -1 | awk '{print $1}'); echo \"📈 Total TypeScript lines: $lines\""],
+      "events": ["Stop"],
+      "priority": 80,
+      "exitCodeMap": {
+        "0": "success"
+      },
+      "message": "Code statistics"
+    },
+    {
+      "name": "time-tracker",
+      "outputFormat": "text",
+      "command": ["sh", "-c", "echo \"⏰ Hook executed at $(date '+%I:%M %p') on $(date '+%A')\""],
+      "events": ["SessionStart", "Stop"],
+      "priority": 90,
+      "exitCodeMap": {
+        "0": "success"
+      },
+      "message": "Time tracking"
+    }
+  ]
+}

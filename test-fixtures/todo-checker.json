@@ -1,0 +1,42 @@
+{
+  "logging": {
+    "level": "verbose"
+  },
+  "hooks": [
+    {
+      "name": "todo-checker",
+      "outputFormat": "text",
+      "command": ["sh", "-c", "grep -n 'TODO' src/**/*.ts || echo 'No TODOs found'"],
+      "events": ["PostToolUse"],
+      "priority": 50,
+      "exitCodeMap": {
+        "0": "non-blocking-error",
+        "1": "success"
+      },
+      "message": "Found TODO comments in code - remember to address them!",
+      "fixInstructions": "Review and complete the TODO items or convert them to GitHub issues"
+    },
+    {
+      "name": "greeting",
+      "outputFormat": "text", 
+      "command": ["sh", "-c", "echo '🚀 cc-hooks is running! Session: '$(date +%H:%M:%S)"],
+      "events": ["PostToolUse", "SessionStart"],
+      "priority": 100,
+      "exitCodeMap": {
+        "0": "success"
+      },
+      "message": "Hook system active"
+    },
+    {
+      "name": "file-size-check",
+      "outputFormat": "text",
+      "command": ["sh", "-c", "find src -name '*.ts' -size +10k -exec echo 'Large file: {}' \\; | head -5"],
+      "events": ["Stop"],
+      "priority": 75,
+      "exitCodeMap": {
+        "0": "success"
+      },
+      "message": "Checking for large TypeScript files"
+    }
+  ]
+}

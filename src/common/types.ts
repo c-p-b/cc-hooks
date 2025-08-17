@@ -35,6 +35,7 @@ interface BaseHook {
   command: string[];
   description?: string;
   events: ClaudeEventName[];
+  matcher?: string;  // Tool name pattern for PreToolUse/PostToolUse (regex or "*" for all)
   priority?: number; // Execution and reporting priority (default: 100, lower = higher priority)
   timeout?: number;  // Custom timeout in milliseconds (default: 30000)
 }
@@ -60,15 +61,27 @@ export interface ClaudeHookEvent {
   session_id: string;
   transcript_path: string;
   cwd: string;
+  
+  // Tool events
   tool_name?: string;
-  tool_input?: unknown;
-  tool_response?: unknown;
-  message?: string;
-  prompt?: string;
-  trigger?: string;
-  custom_instructions?: string;
-  source?: string;
+  tool_input?: any;
+  tool_response?: any;  // PostToolUse only
+  
+  // Stop/SubagentStop
   stop_hook_active?: boolean;
+  
+  // PreCompact
+  trigger?: 'manual' | 'auto';
+  custom_instructions?: string;
+  
+  // SessionStart
+  source?: 'startup' | 'resume' | 'clear';
+  
+  // UserPromptSubmit
+  prompt?: string;
+  
+  // Notification
+  message?: string;
 }
 
 /** The high-fidelity report returned by Tier 2 hooks. */

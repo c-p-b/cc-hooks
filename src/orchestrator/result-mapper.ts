@@ -13,6 +13,7 @@ export interface MappedResult {
   message?: string;
   diagnostics?: DiagnosticReport;
   rawOutput: string;
+  jsonOutput?: any;  // Parsed JSON output for structured hooks
 }
 
 /**
@@ -69,12 +70,14 @@ export class ResultMapper {
     return {
       flowControl,
       message,
-      rawOutput: result.stdout || result.stderr || ''
+      rawOutput: result.stdout || result.stderr || '',
+      jsonOutput: undefined
     };
   }
 
   /**
    * Parse JSON output for Structured hooks.
+   * Handles both DiagnosticReport format and Claude's JSON output format.
    */
   private mapStructuredHook(hook: StructuredHook, result: HookExecutionResult): MappedResult {
     // Default to success for exit code 0, blocking error for 2, non-blocking otherwise
@@ -85,14 +88,31 @@ export class ResultMapper {
       flowControl = 'non-blocking-error';
     }
 
-    // Try to parse JSON output
+    let message: string | undefined;
     let diagnostics: DiagnosticReport | undefined;
+    let jsonOutput: any = undefined;
     
     if (result.stdout) {
       try {
         const parsed = JSON.parse(result.stdout);
+        jsonOutput = parsed;
         
-        // Validate it matches DiagnosticReport structure
+        // Check for Claude's JSON output format
+        if (parsed.decision === 'block' || parsed.decision === 'blocking-error') {
+          flowControl = 'blocking-error';
+          message = parsed.reason || parsed.message;
+        } else if (parsed.decision === 'non-blocking-error') {
+          flowControl = 'non-blocking-error';
+          message = parsed.reason || parsed.message;
+        }
+        
+        // Check for continue: false (stops Claude entirely)
+        if (parsed.continue === false) {
+          flowControl = 'blocking-error';
+          message = parsed.stopReason || 'Hook requested stop';
+        }
+        
+        // Check if it's a DiagnosticReport
         if (this.isDiagnosticReport(parsed)) {
           diagnostics = parsed;
           
@@ -110,10 +130,9 @@ export class ResultMapper {
       }
     }
 
-    // Build message for timeout/truncation
-    let message: string | undefined;
+    // Handle timeout/truncation messages
     if (result.timedOut) {
-      message = `Hook timed out after ${hook.timeout || 30000}ms`;
+      message = message || `Hook timed out after ${hook.timeout || 30000}ms`;
     }
     if (result.truncated) {
       message = message ? `${message} (output truncated)` : 'Output truncated';
@@ -121,9 +140,10 @@ export class ResultMapper {
 
     return {
       flowControl,
-      message,
+      message: message || undefined,
       diagnostics,
-      rawOutput: result.stdout || result.stderr || ''
+      rawOutput: result.stdout || result.stderr || '',
+      jsonOutput
     };
   }
 

@@ -1,0 +1,42 @@
+{
+  "logging": {
+    "level": "verbose"
+  },
+  "hooks": [
+    {
+      "name": "mood-checker",
+      "outputFormat": "text",
+      "command": ["sh", "-c", "echo '🎭 Mood check: Your code is looking $(shuf -n1 -e amazing fantastic brilliant stellar awesome)'"],
+      "events": ["PostToolUse"],
+      "priority": 200,
+      "exitCodeMap": {
+        "0": "success"
+      },
+      "message": "Mood boost delivered"
+    },
+    {
+      "name": "typescript-reminder",
+      "outputFormat": "text",
+      "command": ["sh", "-c", "if ls src/*.js 2>/dev/null | head -1; then echo '⚠️  JavaScript file detected in TypeScript project!'; exit 2; else echo '✅ Pure TypeScript - nice!'; fi"],
+      "events": ["Stop"],
+      "priority": 10,
+      "exitCodeMap": {
+        "0": "success",
+        "2": "blocking-error"
+      },
+      "message": "TypeScript purity check passed",
+      "fixInstructions": "Convert any .js files to .ts for consistency"
+    },
+    {
+      "name": "test-coverage-hint",
+      "outputFormat": "text",
+      "command": ["sh", "-c", "test_count=$(find __tests__ -name '*.test.ts' 2>/dev/null | wc -l | tr -d ' '); echo \"📊 Test files found: $test_count - $([ $test_count -gt 5 ] && echo 'Great coverage!' || echo 'Consider adding more tests')\""],
+      "events": ["Stop"],
+      "priority": 50,
+      "exitCodeMap": {
+        "0": "success"
+      },
+      "message": "Test coverage reminder"
+    }
+  ]
+}

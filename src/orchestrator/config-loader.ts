@@ -98,17 +98,94 @@ export class ConfigLoader {
 
   /**
    * Get active hooks for a specific event, sorted by priority.
+   * Applies appropriate matcher filtering based on event type.
    */
-  getActiveHooks(config: HooksConfigFile, event: ClaudeEventName): HookDefinition[] {
-    const hooks = config.hooks
-      .filter(hook => hook.events.includes(event))
-      .sort((a, b) => {
-        const aPriority = a.priority ?? DEFAULT_HOOK_PRIORITY;
-        const bPriority = b.priority ?? DEFAULT_HOOK_PRIORITY;
-        return aPriority - bPriority; // Lower number = higher priority
-      });
+  getActiveHooks(
+    config: HooksConfigFile, 
+    event: ClaudeEventName,
+    matchValue?: string  // tool name, trigger, or source depending on event
+  ): HookDefinition[] {
+    let hooks = config.hooks.filter(hook => hook.events.includes(event));
+    
+    // Apply matcher filtering based on event type
+    if (matchValue) {
+      if (event === 'PreToolUse' || event === 'PostToolUse') {
+        // Match tool names
+        hooks = hooks.filter(hook => {
+          const matches = this.matchesTool(hook.matcher, matchValue);
+          if (process.env.CC_HOOKS_DEBUG) {
+            console.error(`Hook ${hook.name} matcher="${hook.matcher}" tool="${matchValue}" matches=${matches}`);
+          }
+          return matches;
+        });
+      } else if (event === 'PreCompact' || event === 'SessionStart') {
+        // Match trigger/source values
+        hooks = hooks.filter(hook => {
+          const matches = this.matchesValue(hook.matcher, matchValue);
+          if (process.env.CC_HOOKS_DEBUG) {
+            console.error(`Hook ${hook.name} matcher="${hook.matcher}" value="${matchValue}" matches=${matches}`);
+          }
+          return matches;
+        });
+      }
+      // Other events (Stop, UserPromptSubmit, Notification) don't use matchers
+    }
+    
+    // Sort by priority (lower number = higher priority)
+    hooks.sort((a, b) => {
+      const aPriority = a.priority ?? DEFAULT_HOOK_PRIORITY;
+      const bPriority = b.priority ?? DEFAULT_HOOK_PRIORITY;
+      return aPriority - bPriority;
+    });
     
     return hooks;
+  }
+  
+  /**
+   * Check if a hook's matcher matches a simple value (for PreCompact/SessionStart).
+   */
+  private matchesValue(matcher: string | undefined, value: string): boolean {
+    // No matcher means hook runs for all values (backwards compatibility)
+    if (matcher === undefined || matcher === null) {
+      return true;
+    }
+    
+    // "*" or empty string matches all
+    if (matcher === '*' || matcher === '') {
+      return true;
+    }
+    
+    // Simple string match
+    return matcher === value;
+  }
+  
+  /**
+   * Check if a hook's matcher pattern matches the given tool name.
+   */
+  private matchesTool(matcher: string | undefined, toolName: string): boolean {
+    // No matcher means hook runs for all tools (backwards compatibility)
+    if (matcher === undefined || matcher === null) {
+      return true;
+    }
+    
+    // "*" or empty string matches all tools
+    if (matcher === '*' || matcher === '') {
+      return true;
+    }
+    
+    // Try as regex pattern
+    try {
+      // If pattern already has anchors, use as-is
+      // Otherwise, add anchors for exact matching
+      const pattern = matcher.startsWith('^') || matcher.endsWith('$') 
+        ? matcher 
+        : `^${matcher}$`;
+      const regex = new RegExp(pattern);
+      return regex.test(toolName);
+    } catch {
+      // If not valid regex, treat as literal string match
+      return matcher === toolName;
+    }
   }
 
   private validateHook(hook: any): HookDefinition {
@@ -143,6 +220,10 @@ export class ConfigLoader {
     if (hook.description !== undefined && typeof hook.description !== 'string') {
       throw new Error('description must be a string');
     }
+    
+    if (hook.matcher !== undefined && typeof hook.matcher !== 'string') {
+      throw new Error('matcher must be a string');
+    }
 
     if (hook.priority !== undefined) {
       if (typeof hook.priority !== 'number' || hook.priority < 0) {
@@ -152,7 +233,7 @@ export class ConfigLoader {
 
     if (hook.timeout !== undefined) {
       if (typeof hook.timeout !== 'number' || hook.timeout <= 0) {
-        throw new Error('timeout must be a positive number');
+        throw new Error('timeout must be a positive number (in seconds)');
       }
     }
 
@@ -189,8 +270,9 @@ export class ConfigLoader {
       command: hook.command,
       description: hook.description,
       events: hook.events,
+      matcher: hook.matcher,
       priority: hook.priority,
-      timeout: hook.timeout,
+      timeout: hook.timeout ? hook.timeout * 1000 : undefined, // Convert seconds to milliseconds
       outputFormat: 'text',
       exitCodeMap: hook.exitCodeMap,
       message: hook.message,
@@ -204,8 +286,9 @@ export class ConfigLoader {
       command: hook.command,
       description: hook.description,
       events: hook.events,
+      matcher: hook.matcher,
       priority: hook.priority,
-      timeout: hook.timeout,
+      timeout: hook.timeout ? hook.timeout * 1000 : undefined, // Convert seconds to milliseconds
       outputFormat: 'structured'
     };
   }

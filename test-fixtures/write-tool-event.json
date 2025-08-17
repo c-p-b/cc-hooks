@@ -1,0 +1,11 @@
+{
+  "hook_event_name": "PostToolUse",
+  "session_id": "test-matcher",
+  "transcript_path": "/tmp/test.jsonl",
+  "cwd": "/Users/cpb/git/cc-hooks",
+  "tool_name": "Write",
+  "tool_input": {
+    "file_path": "/tmp/test.txt",
+    "content": "test"
+  }
+}

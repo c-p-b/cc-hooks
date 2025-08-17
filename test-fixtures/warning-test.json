@@ -1,0 +1,31 @@
+{
+  "hooks": [
+    {
+      "name": "warning-1",
+      "outputFormat": "text",
+      "command": ["sh", "-c", "echo '⚠️ Warning 1'; exit 1"],
+      "events": ["PostToolUse"],
+      "priority": 10,
+      "exitCodeMap": {"1": "non-blocking-error"},
+      "message": "First warning detected"
+    },
+    {
+      "name": "warning-2",
+      "outputFormat": "text",
+      "command": ["sh", "-c", "echo '⚠️ Warning 2'; exit 1"],
+      "events": ["PostToolUse"],
+      "priority": 20,
+      "exitCodeMap": {"1": "non-blocking-error"},
+      "message": "Second warning detected"
+    },
+    {
+      "name": "success-after-warnings",
+      "outputFormat": "text",
+      "command": ["echo", "✅ Success - warnings don't block"],
+      "events": ["PostToolUse"],
+      "priority": 30,
+      "exitCodeMap": {"0": "success"},
+      "message": "Completed successfully despite warnings"
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
+import { spawnSync } from 'child_process';
 import { 
   HookDefinition, 
   ClaudeHookEvent, 
@@ -41,6 +42,55 @@ export class HookExecutor {
     this.processManager = new ProcessManager();
     this.resultMapper = new ResultMapper();
   }
+  
+  /**
+   * Get the project root for CLAUDE_PROJECT_DIR environment variable.
+   * Tries in order: env var from Claude, git root, .claude upward search, cwd
+   */
+  private getProjectRoot(cwd: string): string {
+    // If Claude already set it, use that
+    if (process.env.CLAUDE_PROJECT_DIR) {
+      return process.env.CLAUDE_PROJECT_DIR;
+    }
+    
+    // For testing: Try git root first
+    try {
+      const gitResult = spawnSync('git', ['rev-parse', '--show-toplevel'], {
+        cwd,
+        encoding: 'utf8',
+        timeout: 1000
+      });
+      if (gitResult.status === 0 && gitResult.stdout) {
+        const gitRoot = gitResult.stdout.trim();
+        if (gitRoot) {
+          console.error(`[cc-hooks] No CLAUDE_PROJECT_DIR set. Using git root: ${gitRoot}`);
+          return gitRoot;
+        }
+      }
+    } catch (err) {
+      // Git command failed, continue to next method
+    }
+    
+    // Try finding .claude directory via upward search
+    let currentDir = cwd;
+    while (currentDir !== '/' && currentDir !== path.parse(currentDir).root) {
+      const claudePath = path.join(currentDir, '.claude');
+      try {
+        const stats = require('fs').statSync(claudePath);
+        if (stats.isDirectory()) {
+          console.error(`[cc-hooks] No CLAUDE_PROJECT_DIR set. No git root found. Found .claude/ at: ${currentDir}`);
+          return currentDir;
+        }
+      } catch {
+        // .claude doesn't exist here, continue searching
+      }
+      currentDir = path.dirname(currentDir);
+    }
+    
+    // Fallback to current working directory
+    console.error(`[cc-hooks] WARNING: No CLAUDE_PROJECT_DIR, no git root, no .claude/ found. Using cwd: ${cwd}`);
+    return cwd;
+  }
 
   /**
    * Execute a single hook with resource limits.
@@ -64,10 +114,14 @@ export class HookExecutor {
     let timeoutHandle: NodeJS.Timeout | null = null;
 
     try {
-      // Spawn the process
+      // Spawn the process with CLAUDE_PROJECT_DIR environment variable
+      const projectRoot = this.getProjectRoot(context.event.cwd || process.cwd());
       const child = this.processManager.spawn(processId, hook.command, {
         cwd: context.event.cwd,
-        env: process.env,
+        env: {
+          ...process.env,
+          CLAUDE_PROJECT_DIR: projectRoot
+        },
         stdio: ['pipe', 'pipe', 'pipe']
       });
 

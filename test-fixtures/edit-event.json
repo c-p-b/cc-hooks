@@ -1,0 +1,16 @@
+{
+  "hook_event_name": "PostToolUse",
+  "session_id": "demo-session-456",
+  "transcript_path": "/Users/cpb/.claude/projects/cc-hooks/transcript.jsonl",
+  "cwd": "/Users/cpb/git/cc-hooks",
+  "tool_name": "Edit",
+  "tool_input": {
+    "file_path": "/Users/cpb/git/cc-hooks/src/test.ts",
+    "old_string": "const foo = 'bar'",
+    "new_string": "const foo = 'updated'"
+  },
+  "tool_response": {
+    "success": true,
+    "filePath": "/Users/cpb/git/cc-hooks/src/test.ts"
+  }
+}

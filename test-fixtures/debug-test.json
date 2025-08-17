@@ -1,0 +1,12 @@
+{
+  "hooks": [
+    {
+      "name": "simple-test",
+      "outputFormat": "text",
+      "command": ["echo", "Simple test running"],
+      "events": ["PostToolUse"],
+      "exitCodeMap": {"0": "success"},
+      "message": "Simple test"
+    }
+  ]
+}

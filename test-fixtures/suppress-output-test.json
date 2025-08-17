@@ -1,0 +1,18 @@
+{
+  "hooks": [
+    {
+      "name": "suppress-test",
+      "outputFormat": "structured",
+      "command": ["sh", "-c", "echo '{\"suppressOutput\": true, \"message\": \"This should not be shown\"}'"],
+      "events": ["Stop"],
+      "priority": 10
+    },
+    {
+      "name": "no-suppress-test",
+      "outputFormat": "structured",
+      "command": ["sh", "-c", "echo '{\"suppressOutput\": false, \"message\": \"This SHOULD be shown\"}'"],
+      "events": ["SessionStart"],
+      "priority": 20
+    }
+  ]
+}

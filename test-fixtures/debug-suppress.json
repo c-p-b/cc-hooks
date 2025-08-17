@@ -1,0 +1,11 @@
+{
+  "hooks": [
+    {
+      "name": "show-json",
+      "outputFormat": "structured",
+      "command": ["sh", "-c", "echo '{\"message\": \"Test message\", \"suppressOutput\": false}'"],
+      "events": ["Stop"],
+      "priority": 10
+    }
+  ]
+}
