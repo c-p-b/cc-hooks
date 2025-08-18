@@ -18,7 +18,7 @@ describe('RunCommand Integration Tests', () => {
   
   // Helper to run cc-hooks with event data
   function runHook(eventData: any, configPath?: string, cwd?: string): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const args = ['tsx', 'src/cli.ts', 'run'];
       if (configPath) {
         args.push('--config', configPath);
@@ -30,6 +30,15 @@ describe('RunCommand Integration Tests', () => {
       
       let stdout = '';
       let stderr = '';
+      let finished = false;
+      
+      // Set a timeout to prevent hanging
+      const timeout = setTimeout(() => {
+        if (!finished) {
+          proc.kill('SIGKILL');
+          reject(new Error('Process timed out after 4 seconds'));
+        }
+      }, 4000);
       
       proc.stdout.on('data', (data) => {
         stdout += data.toString();
@@ -39,7 +48,15 @@ describe('RunCommand Integration Tests', () => {
         stderr += data.toString();
       });
       
+      proc.on('error', (err) => {
+        finished = true;
+        clearTimeout(timeout);
+        reject(err);
+      });
+      
       proc.on('close', (exitCode) => {
+        finished = true;
+        clearTimeout(timeout);
         resolve({ stdout, stderr, exitCode: exitCode || 0 });
       });
       
@@ -103,7 +120,7 @@ describe('RunCommand Integration Tests', () => {
       expect(autoResult.stdout).toContain('AUTO_TRIGGERED');
       expect(autoResult.stdout).not.toContain('MANUAL_TRIGGERED');
       expect(autoResult.exitCode).toBe(0);
-    });
+    }, 10000);
     
     test('SessionStart matcher filters by source value', async () => {
       const config = {

@@ -1,0 +1,254 @@
+import * as fs from 'fs';
+import * as path from 'path';
+import { execSync } from 'child_process';
+import chalk from 'chalk';
+import { CCHooksError } from '../common/errors';
+import { getLogger } from '../common/logger';
+import { HooksConfigFile, HookDefinition } from '../common/types';
+import { ConfigLoader } from '../orchestrator/config-loader';
+
+export interface InstallOptions {
+  force?: boolean;
+}
+
+export class InstallCommand {
+  private logger = getLogger();
+  private configLoader = new ConfigLoader();
+
+  async execute(source: string, options: InstallOptions = {}): Promise<void> {
+    try {
+      // Check if cc-hooks is initialized
+      const configPath = this.findConfigFile();
+      if (!configPath) {
+        throw new CCHooksError(
+          'cc-hooks is not initialized. Run "cc-hooks init" first.'
+        );
+      }
+
+      // Resolve the hook source
+      const hookDef = await this.resolveHookSource(source);
+      
+      // Load existing config
+      const config = this.configLoader.load(configPath);
+      
+      // Check for conflicts
+      const existingHook = config.hooks.find(h => h.name === hookDef.name);
+      if (existingHook && !options.force) {
+        throw new CCHooksError(
+          `Hook '${hookDef.name}' already exists. Use --force to overwrite.`
+        );
+      }
+
+      // Add or replace the hook
+      if (existingHook) {
+        const index = config.hooks.findIndex(h => h.name === hookDef.name);
+        config.hooks[index] = hookDef;
+        console.log(chalk.yellow(`⚠ Replaced existing hook: ${hookDef.name}`));
+      } else {
+        config.hooks.push(hookDef);
+        console.log(chalk.green(`✓ Installed hook: ${hookDef.name}`));
+      }
+
+      // Save updated config
+      await this.saveConfig(configPath, config);
+      
+      // Show hook details
+      console.log(chalk.gray(`  Description: ${hookDef.description || 'N/A'}`));
+      console.log(chalk.gray(`  Events: ${hookDef.events.join(', ')}`));
+      console.log(chalk.gray(`  Command: ${hookDef.command.join(' ')}`));
+      
+    } catch (error) {
+      if (error instanceof CCHooksError) {
+        throw error;
+      }
+      throw new CCHooksError(`Failed to install hook: ${error}`);
+    }
+  }
+
+  private async resolveHookSource(source: string): Promise<HookDefinition> {
+    // 1. Check if it's a built-in template
+    const builtInHook = await this.loadBuiltInTemplate(source);
+    if (builtInHook) {
+      return builtInHook;
+    }
+
+    // 2. Check if it's a local path
+    if (source.startsWith('./') || source.startsWith('/') || source.startsWith('../')) {
+      return await this.loadLocalHook(source);
+    }
+
+    // 3. Check if it's a git URL
+    if (this.isGitUrl(source)) {
+      return await this.loadGitHook(source);
+    }
+
+    throw new CCHooksError(
+      `Unable to resolve hook source: ${source}\n` +
+      `Try one of:\n` +
+      `  - Built-in template name (e.g., typescript-lint)\n` +
+      `  - Local path (e.g., ./my-hook.json)\n` +
+      `  - Git URL (e.g., https://github.com/user/repo)`
+    );
+  }
+
+  private async loadBuiltInTemplate(name: string): Promise<HookDefinition | null> {
+    try {
+      // Look for template in package's templates directory
+      let templatePath = path.join(__dirname, '..', '..', 'templates', `${name}.json`);
+      
+      if (!fs.existsSync(templatePath)) {
+        // Try without .json extension if name already has it
+        const altPath = path.join(__dirname, '..', '..', 'templates', name);
+        if (fs.existsSync(altPath)) {
+          templatePath = altPath;
+        } else {
+          return null;
+        }
+      }
+
+      const content = fs.readFileSync(templatePath, 'utf-8');
+      const hookDef = JSON.parse(content);
+      
+      // Validate the hook definition
+      return this.validateHookDefinition(hookDef);
+    } catch (error) {
+      this.logger.log(`Failed to load built-in template ${name}: ${error}`);
+      return null;
+    }
+  }
+
+  private async loadLocalHook(hookPath: string): Promise<HookDefinition> {
+    const resolvedPath = path.resolve(hookPath);
+    
+    if (!fs.existsSync(resolvedPath)) {
+      throw new CCHooksError(`Hook file not found: ${resolvedPath}`);
+    }
+
+    const stat = fs.statSync(resolvedPath);
+    
+    if (stat.isDirectory()) {
+      // Look for hook.json in the directory
+      const hookFile = path.join(resolvedPath, 'hook.json');
+      if (!fs.existsSync(hookFile)) {
+        throw new CCHooksError(
+          `No hook.json found in directory: ${resolvedPath}`
+        );
+      }
+      return this.loadHookFile(hookFile);
+    } else {
+      // Load the file directly
+      return this.loadHookFile(resolvedPath);
+    }
+  }
+
+  private async loadGitHook(gitUrl: string): Promise<HookDefinition> {
+    console.log(chalk.gray(`Cloning from ${gitUrl}...`));
+    
+    // Create temp directory
+    const tempDir = path.join(process.env.TMPDIR || '/tmp', `cc-hooks-${Date.now()}`);
+    
+    try {
+      // Clone the repository
+      execSync(`git clone --depth 1 --quiet "${gitUrl}" "${tempDir}"`, {
+        stdio: 'pipe'
+      });
+
+      // Look for hook.json or hooks/ directory
+      const hookFile = path.join(tempDir, 'hook.json');
+      const hooksDir = path.join(tempDir, 'hooks');
+      
+      if (fs.existsSync(hookFile)) {
+        // Single hook repository
+        return this.loadHookFile(hookFile);
+      } else if (fs.existsSync(hooksDir)) {
+        // Multiple hooks repository - list available hooks
+        const hooks = fs.readdirSync(hooksDir)
+          .filter(f => f.endsWith('.json'))
+          .map(f => f.replace('.json', ''));
+        
+        throw new CCHooksError(
+          `Multiple hooks found in repository. Install specific hook:\n` +
+          hooks.map(h => `  cc-hooks install ${gitUrl}#${h}`).join('\n')
+        );
+      } else {
+        throw new CCHooksError(
+          `No hook.json or hooks/ directory found in repository: ${gitUrl}`
+        );
+      }
+    } finally {
+      // Clean up temp directory
+      if (fs.existsSync(tempDir)) {
+        execSync(`rm -rf "${tempDir}"`, { stdio: 'pipe' });
+      }
+    }
+  }
+
+  private loadHookFile(filePath: string): HookDefinition {
+    try {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const hookDef = JSON.parse(content);
+      return this.validateHookDefinition(hookDef);
+    } catch (error) {
+      throw new CCHooksError(`Failed to load hook file ${filePath}: ${error}`);
+    }
+  }
+
+  private validateHookDefinition(hook: any): HookDefinition {
+    // Basic validation - the ConfigLoader will do full validation
+    if (!hook.name || typeof hook.name !== 'string') {
+      throw new CCHooksError('Hook must have a name');
+    }
+    if (!Array.isArray(hook.command) || hook.command.length === 0) {
+      throw new CCHooksError('Hook must have a command array');
+    }
+    if (!Array.isArray(hook.events) || hook.events.length === 0) {
+      throw new CCHooksError('Hook must have events array');
+    }
+    if (!hook.outputFormat) {
+      throw new CCHooksError('Hook must have outputFormat (text or structured)');
+    }
+
+    // For text hooks, ensure required fields
+    if (hook.outputFormat === 'text') {
+      if (!hook.exitCodeMap) {
+        throw new CCHooksError('Text hooks must have exitCodeMap');
+      }
+      if (!hook.message) {
+        throw new CCHooksError('Text hooks must have a message');
+      }
+    }
+
+    return hook as HookDefinition;
+  }
+
+  private isGitUrl(source: string): boolean {
+    return source.startsWith('https://') || 
+           source.startsWith('git://') || 
+           source.startsWith('git@') ||
+           source.includes('github.com') ||
+           source.includes('gitlab.com');
+  }
+
+  private findConfigFile(): string | null {
+    const locations = [
+      path.join(process.cwd(), '.claude', 'cc-hooks-local.json'),
+      path.join(process.cwd(), '.claude', 'cc-hooks.json'),
+      path.join(process.cwd(), 'cc-hooks.json'),
+      path.join(process.env.HOME || '', '.claude', 'cc-hooks.json')
+    ];
+
+    for (const location of locations) {
+      if (fs.existsSync(location)) {
+        return location;
+      }
+    }
+
+    return null;
+  }
+
+  private async saveConfig(configPath: string, config: HooksConfigFile): Promise<void> {
+    const content = JSON.stringify(config, null, 2);
+    await fs.promises.writeFile(configPath, content, 'utf-8');
+    this.logger.log(`Updated config at: ${configPath}`);
+  }
+}

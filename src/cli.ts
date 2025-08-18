@@ -44,10 +44,25 @@ program
   .command('init')
   .description('Initialize cc-hooks for the current project')
   .option('-f, --force', 'force initialization, overwriting existing configuration')
-  .action(async (_options) => {
+  .action(async (options) => {
     try {
-      // TODO: Import and execute InitCommand
-      console.log(chalk.green('✓ cc-hooks initialized successfully'));
+      const { InitCommand } = await import('./commands/init');
+      const command = new InitCommand();
+      await command.execute(options);
+    } catch (error) {
+      handleError(error);
+    }
+  });
+
+// Uninit command
+program
+  .command('uninit')
+  .description('Deactivate cc-hooks and remove all configurations')
+  .action(async () => {
+    try {
+      const { UninitCommand } = await import('./commands/uninit');
+      const command = new UninitCommand();
+      await command.execute();
     } catch (error) {
       handleError(error);
     }
@@ -58,10 +73,11 @@ program
   .command('install <source>')
   .description('Install a hook from a template, Git repository, or local path')
   .option('-f, --force', 'force installation, overwriting conflicts')
-  .action(async (source, _options) => {
+  .action(async (source, options) => {
     try {
-      // TODO: Import and execute InstallCommand
-      console.log(chalk.green(`✓ Hook installed from ${source}`));
+      const { InstallCommand } = await import('./commands/install');
+      const command = new InstallCommand();
+      await command.execute(source, options);
     } catch (error) {
       handleError(error);
     }
@@ -71,10 +87,11 @@ program
 program
   .command('uninstall [hookName]')
   .description('Uninstall a hook (interactive if no name provided)')
-  .action(async (_hookName) => {
+  .action(async (hookName) => {
     try {
-      // TODO: Import and execute UninstallCommand
-      console.log(chalk.green(`✓ Hook uninstalled`));
+      const { UninstallCommand } = await import('./commands/uninstall');
+      const command = new UninstallCommand();
+      await command.execute(hookName);
     } catch (error) {
       handleError(error);
     }
@@ -86,9 +103,11 @@ program
   .alias('list')
   .description('Show all configured hooks')
   .option('-v, --verbose', 'show detailed information')
-  .action(async (_options) => {
+  .action(async (options) => {
     try {
-      // TODO: Import and execute ShowCommand
+      const { ShowCommand } = await import('./commands/show');
+      const command = new ShowCommand();
+      await command.execute(options);
     } catch (error) {
       handleError(error);
     }
@@ -99,10 +118,11 @@ program
   .command('migrate')
   .description('Migrate existing vanilla hooks to cc-hooks')
   .option('-i, --interactive', 'interactive migration mode')
-  .action(async (_options) => {
+  .action(async (options) => {
     try {
-      // TODO: Import and execute MigrateCommand
-      console.log(chalk.green('✓ Migration completed'));
+      const { MigrateCommand } = await import('./commands/migrate');
+      const command = new MigrateCommand();
+      await command.execute(options);
     } catch (error) {
       handleError(error);
     }

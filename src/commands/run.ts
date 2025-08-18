@@ -28,52 +28,72 @@ export class RunCommand {
     if (process.env.CC_HOOKS_DEBUG) {
       console.error('[DEBUG] RunCommand.execute started with options:', options);
     }
+    
+    let event: ClaudeHookEvent;
+    let configPath: string | null;
+    let config: any;
+    let hooks: HookDefinition[];
+    
     try {
       // Get event data from stdin or mock
-      const event = await this.getEventData(options);
+      event = await this.getEventData(options);
       this.lastEvent = event;
       
       if (process.env.CC_HOOKS_DEBUG) {
         console.error('[DEBUG] Event received:', JSON.stringify(event));
       }
-      
-      // Check for infinite loop prevention
-      if ((event.hook_event_name === 'Stop' || event.hook_event_name === 'SubagentStop') 
-          && event.stop_hook_active) {
-        console.error('[WARNING] stop_hook_active is true - skipping hooks to prevent infinite loop');
-        process.exit(EXIT_SUCCESS);
-      }
-      
-      // Load configuration
-      const configPath = options.config || this.findConfigFile();
-      if (!configPath) {
-        // No config file = no hooks to run, short-circuit
-        process.exit(EXIT_SUCCESS);
-      }
+    } catch (error) {
+      this.handleError(error);
+      return;
+    }
+    
+    // Check for infinite loop prevention (outside try-catch)
+    if ((event.hook_event_name === 'Stop' || event.hook_event_name === 'SubagentStop') 
+        && event.stop_hook_active) {
+      console.error('[WARNING] stop_hook_active is true - skipping hooks to prevent infinite loop');
+      process.exit(EXIT_SUCCESS);
+      return;
+    }
+    
+    // Load configuration (outside try-catch for process.exit)
+    configPath = options.config || this.findConfigFile();
+    if (!configPath) {
+      // No config file = no hooks to run, short-circuit
+      process.exit(EXIT_SUCCESS);
+      return;
+    }
 
-      const config = this.configLoader.load(configPath);
-      
-      // Determine match value based on event type
-      let matchValue: string | undefined;
-      if (event.hook_event_name === 'PreToolUse' || event.hook_event_name === 'PostToolUse') {
-        matchValue = event.tool_name;
-      } else if (event.hook_event_name === 'PreCompact') {
-        matchValue = event.trigger;
-      } else if (event.hook_event_name === 'SessionStart') {
-        matchValue = event.source;
-      }
-      
-      const hooks = this.configLoader.getActiveHooks(config, event.hook_event_name, matchValue);
-      
-      if (process.env.CC_HOOKS_DEBUG) {
-        console.error(`[DEBUG] Found ${hooks.length} hooks for ${event.hook_event_name}`);
-      }
-      
-      if (hooks.length === 0) {
-        // No hooks for this event, short-circuit
-        process.exit(EXIT_SUCCESS);
-      }
+    try {
+      config = this.configLoader.load(configPath);
+    } catch (error) {
+      this.handleError(error);
+      return;
+    }
+    
+    // Determine match value based on event type
+    let matchValue: string | undefined;
+    if (event.hook_event_name === 'PreToolUse' || event.hook_event_name === 'PostToolUse') {
+      matchValue = event.tool_name;
+    } else if (event.hook_event_name === 'PreCompact') {
+      matchValue = event.trigger;
+    } else if (event.hook_event_name === 'SessionStart') {
+      matchValue = event.source;
+    }
+    
+    hooks = this.configLoader.getActiveHooks(config, event.hook_event_name, matchValue);
+    
+    if (process.env.CC_HOOKS_DEBUG) {
+      console.error(`[DEBUG] Found ${hooks.length} hooks for ${event.hook_event_name}`);
+    }
+    
+    if (hooks.length === 0) {
+      // No hooks for this event, short-circuit (outside try-catch)
+      process.exit(EXIT_SUCCESS);
+      return;
+    }
 
+    let exitCode: number;
+    try {
       // Log the event
       this.logger.logEvent(event);
 
@@ -83,12 +103,16 @@ export class RunCommand {
       // Determine the most severe result
       const finalResult = this.determineFinalResult(results);
       
-      // Output based on result
-      this.outputResult(finalResult);
+      // Output based on result and get exit code
+      exitCode = this.outputResult(finalResult);
       
     } catch (error) {
       this.handleError(error);
+      return;
     }
+    
+    // Exit with the determined code (outside try-catch)
+    process.exit(exitCode);
   }
 
   private async getEventData(options: RunOptions): Promise<ClaudeHookEvent> {
@@ -239,9 +263,9 @@ export class RunCommand {
     return sortedResults[0] || null;
   }
 
-  private outputResult(result: HookResult | null): void {
+  private outputResult(result: HookResult | null): number {
     if (!result) {
-      process.exit(EXIT_SUCCESS);
+      return EXIT_SUCCESS;
     }
 
     const event = this.lastEvent;
@@ -257,7 +281,7 @@ export class RunCommand {
           // For text hooks, raw output becomes context
           console.log(result.rawOutput);
         }
-        process.exit(EXIT_SUCCESS);
+        return EXIT_SUCCESS;
       }
     }
 
@@ -273,14 +297,14 @@ export class RunCommand {
         console.error(`\nFix: ${result.hook.fixInstructions}`);
       }
       
-      process.exit(EXIT_BLOCKING_ERROR);
+      return EXIT_BLOCKING_ERROR;
     } else if (result.flowControl === 'non-blocking-error') {
       // Non-blocking error - show to user but continue
       const message = this.getErrorMessage(result);
       console.error(message);
       
       // Still exit 0 for non-blocking errors (Claude continues)
-      process.exit(EXIT_SUCCESS);
+      return EXIT_SUCCESS;
     } else {
       // Success - check for special JSON output
       if (result.hook.outputFormat === 'structured' && result.jsonOutput) {
@@ -288,7 +312,7 @@ export class RunCommand {
       } else if (result.rawOutput) {
         console.log(result.rawOutput);
       }
-      process.exit(EXIT_SUCCESS);
+      return EXIT_SUCCESS;
     }
   }
   

@@ -56,6 +56,10 @@ describe('LogCleaner', () => {
     it('should not cleanup if lock was acquired recently', async () => {
       const statMock = fs.stat as jest.Mock;
       const unlinkMock = fs.unlink as jest.Mock;
+      const mkdirMock = fs.mkdir as jest.Mock;
+      
+      // Ensure mkdir succeeds
+      mkdirMock.mockResolvedValue(undefined);
       
       // Lock file exists and is recent (30 minutes old)
       statMock.mockResolvedValue({
@@ -64,7 +68,9 @@ describe('LogCleaner', () => {
       
       LogCleaner.cleanupIfNeeded('test-session');
       
-      await new Promise(resolve => setTimeout(resolve, 10));
+      // Wait for async operations to complete
+      await new Promise(resolve => setImmediate(resolve));
+      await new Promise(resolve => setImmediate(resolve));
       
       // Should not attempt to remove lock or perform cleanup
       expect(unlinkMock).not.toHaveBeenCalled();

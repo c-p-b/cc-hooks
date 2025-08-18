@@ -63,7 +63,7 @@ export class HookExecutor {
       if (gitResult.status === 0 && gitResult.stdout) {
         const gitRoot = gitResult.stdout.trim();
         if (gitRoot) {
-          console.error(`[cc-hooks] No CLAUDE_PROJECT_DIR set. Using git root: ${gitRoot}`);
+          this.logger.logDebug(`No CLAUDE_PROJECT_DIR set. Using git root: ${gitRoot}`);
           return gitRoot;
         }
       }
@@ -78,7 +78,7 @@ export class HookExecutor {
       try {
         const stats = require('fs').statSync(claudePath);
         if (stats.isDirectory()) {
-          console.error(`[cc-hooks] No CLAUDE_PROJECT_DIR set. No git root found. Found .claude/ at: ${currentDir}`);
+          this.logger.logDebug(`No CLAUDE_PROJECT_DIR set. No git root found. Found .claude/ at: ${currentDir}`);
           return currentDir;
         }
       } catch {
@@ -112,6 +112,7 @@ export class HookExecutor {
     let truncated = false;
     let timedOut = false;
     let timeoutHandle: NodeJS.Timeout | null = null;
+    let killHandle: NodeJS.Timeout | null = null;
 
     try {
       // Spawn the process with CLAUDE_PROJECT_DIR environment variable
@@ -127,6 +128,15 @@ export class HookExecutor {
 
       // Write event data to stdin
       const eventJson = JSON.stringify(context.event);
+      
+      // Handle EPIPE errors gracefully - some commands don't read stdin
+      child.stdin?.on('error', (err: Error) => {
+        if ((err as any).code !== 'EPIPE') {
+          // Only log non-EPIPE errors
+          this.logger.log(`Hook '${hook.name}' stdin error: ${err.message}`);
+        }
+      });
+      
       child.stdin?.write(eventJson);
       child.stdin?.end();
 
@@ -175,7 +185,7 @@ export class HookExecutor {
         child.kill('SIGTERM');
         
         // SIGKILL after 2 seconds if still alive
-        setTimeout(() => {
+        killHandle = setTimeout(() => {
           if (!child.killed) {
             child.kill('SIGKILL');
           }
@@ -189,9 +199,12 @@ export class HookExecutor {
         });
       });
 
-      // Clear timeout if process finished naturally
+      // Clear timeouts
       if (timeoutHandle) {
         clearTimeout(timeoutHandle);
+      }
+      if (killHandle) {
+        clearTimeout(killHandle);
       }
 
       const duration = Date.now() - startTime;
@@ -230,9 +243,12 @@ export class HookExecutor {
       return result;
 
     } catch (error) {
-      // Clean up timeout
+      // Clean up timeouts
       if (timeoutHandle) {
         clearTimeout(timeoutHandle);
+      }
+      if (killHandle) {
+        clearTimeout(killHandle);
       }
 
       // Kill process if still running

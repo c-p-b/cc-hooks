@@ -46,7 +46,7 @@ node dist/cli.js --debug
 ## Architecture
 
 - **Two-tier hook system**: Text (exit code mapping) and Structured (JSON output)
-- **Resource limits**: 30s timeout, 1MB output per hook
+- **Resource limits**: 60s timeout (configurable), 1MB output per hook
 - **Priority-based execution**: Lower priority numbers execute first
 - **Platform support**: Mac/Linux native, Windows via WSL2
 
