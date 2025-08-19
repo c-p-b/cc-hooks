@@ -22,7 +22,7 @@ jobs:
           cache: 'npm'
       
       - name: Cache npm
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.0.2
         with:
           path: ~/.npm
           key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
@@ -42,7 +42,7 @@ jobs:
           cache: 'npm'
       
       - name: Cache npm
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.0.2
         with:
           path: ~/.npm
           key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
@@ -65,7 +65,7 @@ jobs:
           cache: 'npm'
       
       - name: Cache npm
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.0.2
         with:
           path: ~/.npm
           key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
@@ -76,7 +76,7 @@ jobs:
         run: echo "key=ts-build-${{ runner.os }}-${{ hashFiles('src/**/*.ts', 'tsconfig.json') }}" >> $GITHUB_OUTPUT
       
       - name: Cache TypeScript build
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.0.2
         with:
           path: |
             dist
@@ -110,7 +110,7 @@ jobs:
           cache: 'npm'
       
       - name: Cache npm
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.0.2
         with:
           path: ~/.npm
           key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
