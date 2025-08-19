@@ -23,25 +23,21 @@ import * as os from 'os';
 describe('Core Features Integration Tests', () => {
   let testDir: string;
   let originalHome: string | undefined;
-  let originalCwd: string;
 
   beforeEach(() => {
     originalHome = process.env.HOME;
-    originalCwd = process.cwd();
     
     // Create isolated test environment
     testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cc-hooks-core-test-'));
-    process.chdir(testDir);
     process.env.HOME = testDir;
     
     // Create .claude directory
-    fs.mkdirSync('.claude', { recursive: true });
+    fs.mkdirSync(path.join(testDir, '.claude'), { recursive: true });
   });
 
   afterEach(() => {
     // Restore environment
     if (originalHome) process.env.HOME = originalHome;
-    process.chdir(originalCwd);
     
     // Clean up
     fs.rmSync(testDir, { recursive: true, force: true });
@@ -50,11 +46,11 @@ describe('Core Features Integration Tests', () => {
   describe('1. Full Workflow Test', () => {
     it('should complete full lifecycle: init -> install -> run -> uninit', async () => {
       // Step 1: Initialize cc-hooks
-      const init = new InitCommand();
+      const init = new InitCommand(testDir);
       await init.execute({ force: true });
       
       // Verify settings.json was created with orchestrator
-      const settingsPath = path.join('.claude', 'settings.json');
+      const settingsPath = path.join(testDir, '.claude', 'settings.json');
       expect(fs.existsSync(settingsPath)).toBe(true);
       const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
       expect(settings.hooks.PreToolUse[0].hooks[0].command).toBe('cc-hooks run');
@@ -69,18 +65,19 @@ describe('Core Features Integration Tests', () => {
         message: 'Test hook executed'
       };
       
-      fs.writeFileSync('test-hook.json', JSON.stringify(hookDef));
-      const install = new InstallCommand();
-      await install.execute('./test-hook.json');
+      const hookPath = path.join(testDir, 'test-hook.json');
+      fs.writeFileSync(hookPath, JSON.stringify(hookDef));
+      const install = new InstallCommand(testDir);
+      await install.execute(hookPath);
       
       // Verify hook was installed
-      const configPath = path.join('.claude', 'cc-hooks.json');
+      const configPath = path.join(testDir, '.claude', 'cc-hooks.json');
       const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
       expect(config.hooks).toHaveLength(1);
       expect(config.hooks[0].name).toBe('test-workflow-hook');
       
       // Step 3: Execute the hook via RunCommand
-      const run = new RunCommand();
+      const run = new RunCommand(testDir);
       const mockEvent = {
         hook_event_name: 'Stop',
         session_id: 'test-workflow',
@@ -115,7 +112,7 @@ describe('Core Features Integration Tests', () => {
       exitMock.restore();
       
       // Step 4: Uninitialize
-      const uninit = new UninitCommand();
+      const uninit = new UninitCommand(testDir);
       await uninit.execute();
       
       // Verify cleanup
@@ -377,7 +374,7 @@ describe('Core Features Integration Tests', () => {
   describe('5. Event Filtering and Matching', () => {
     it('should only execute hooks for matching events', async () => {
       // Initialize
-      const init = new InitCommand();
+      const init = new InitCommand(testDir);
       await init.execute({ force: true });
 
       // Install hooks for different events
@@ -410,11 +407,11 @@ describe('Core Features Integration Tests', () => {
       ];
 
       // Write config with all hooks
-      const configPath = path.join('.claude', 'cc-hooks.json');
+      const configPath = path.join(testDir, '.claude', 'cc-hooks.json');
       fs.writeFileSync(configPath, JSON.stringify({ hooks }));
 
       // Test 1: Stop event should only run stop-hook
-      const run = new RunCommand();
+      const run = new RunCommand(testDir);
       const stopEvent = {
         hook_event_name: 'Stop',
         session_id: 'event-filter-test',

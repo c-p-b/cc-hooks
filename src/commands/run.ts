@@ -18,8 +18,10 @@ export class RunCommand {
   private configLoader: ConfigLoader;
   private executor: HookExecutor;
   private logger = getLogger();
+  private cwd: string;
 
-  constructor() {
+  constructor(cwd?: string) {
+    this.cwd = cwd || process.cwd();
     this.configLoader = new ConfigLoader();
     this.executor = new HookExecutor();
   }
@@ -174,9 +176,9 @@ export class RunCommand {
     // Check for cc-hooks.json in priority order (most specific first)
     const locations = [
       // Local (highest priority - local overrides)
-      path.join(process.cwd(), '.claude', 'cc-hooks-local.json'),
+      path.join(this.cwd, '.claude', 'cc-hooks-local.json'),
       // Project
-      path.join(process.cwd(), '.claude', 'cc-hooks.json'),
+      path.join(this.cwd, '.claude', 'cc-hooks.json'),
       // Global (lowest priority)
       path.join(process.env.HOME || '', '.claude', 'cc-hooks.json'),
     ];

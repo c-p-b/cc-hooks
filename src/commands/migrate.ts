@@ -13,6 +13,7 @@ export interface MigrateOptions {
 export class MigrateCommand {
   private logger = getLogger();
   private configLoader = new ConfigLoader();
+  private cwd: string;
   
   private readonly CLAUDE_EVENTS: ClaudeEventName[] = [
     'PreToolUse',
@@ -24,6 +25,10 @@ export class MigrateCommand {
     'PreCompact',
     'SessionStart'
   ];
+
+  constructor(cwd?: string) {
+    this.cwd = cwd || process.cwd();
+  }
 
   async execute(options: MigrateOptions = {}): Promise<void> {
     try {
@@ -117,8 +122,8 @@ export class MigrateCommand {
 
   private findSettingsFile(): string | null {
     const locations = [
-      path.join(process.cwd(), '.claude', 'settings.json'),
-      path.join(process.cwd(), 'settings.json'),
+      path.join(this.cwd, '.claude', 'settings.json'),
+      path.join(this.cwd, 'settings.json'),
       path.join(process.env.HOME || '', '.claude', 'settings.json')
     ];
 

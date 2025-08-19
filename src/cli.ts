@@ -47,7 +47,7 @@ program
   .action(async (options) => {
     try {
       const { InitCommand } = await import('./commands/init');
-      const command = new InitCommand();
+      const command = new InitCommand(process.cwd());
       await command.execute(options);
     } catch (error) {
       handleError(error);
@@ -61,7 +61,7 @@ program
   .action(async () => {
     try {
       const { UninitCommand } = await import('./commands/uninit');
-      const command = new UninitCommand();
+      const command = new UninitCommand(process.cwd());
       await command.execute();
     } catch (error) {
       handleError(error);
@@ -76,7 +76,7 @@ program
   .action(async (source, options) => {
     try {
       const { InstallCommand } = await import('./commands/install');
-      const command = new InstallCommand();
+      const command = new InstallCommand(process.cwd());
       await command.execute(source, options);
     } catch (error) {
       handleError(error);
@@ -90,7 +90,7 @@ program
   .action(async (hookName) => {
     try {
       const { UninstallCommand } = await import('./commands/uninstall');
-      const command = new UninstallCommand();
+      const command = new UninstallCommand(process.cwd());
       await command.execute(hookName);
     } catch (error) {
       handleError(error);
@@ -106,7 +106,7 @@ program
   .action(async (options) => {
     try {
       const { ShowCommand } = await import('./commands/show');
-      const command = new ShowCommand();
+      const command = new ShowCommand(process.cwd());
       await command.execute(options);
     } catch (error) {
       handleError(error);
@@ -121,7 +121,7 @@ program
   .action(async (options) => {
     try {
       const { MigrateCommand } = await import('./commands/migrate');
-      const command = new MigrateCommand();
+      const command = new MigrateCommand(process.cwd());
       await command.execute(options);
     } catch (error) {
       handleError(error);
@@ -163,7 +163,7 @@ program
   .action(async (options) => {
     try {
       const { RunCommand } = await import('./commands/run');
-      const command = new RunCommand();
+      const command = new RunCommand(process.cwd());
       await command.execute(options);
     } catch (error) {
       // For the run command, we need specific error handling

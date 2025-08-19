@@ -20,15 +20,14 @@ describe('Command Integration Tests', () => {
     
     // Create a temp directory for testing
     testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cc-hooks-test-'));
-    process.chdir(testDir);
     
     // Set HOME to temp directory to avoid polluting real home
     process.env.HOME = testDir;
     
     // Create .claude directory
-    fs.mkdirSync('.claude');
-    settingsPath = path.join('.claude', 'settings.json');
-    configPath = path.join('.claude', 'cc-hooks.json');
+    fs.mkdirSync(path.join(testDir, '.claude'));
+    settingsPath = path.join(testDir, '.claude', 'settings.json');
+    configPath = path.join(testDir, '.claude', 'cc-hooks.json');
   });
   
   afterEach(() => {
@@ -38,13 +37,12 @@ describe('Command Integration Tests', () => {
     }
     
     // Clean up temp directory
-    process.chdir('/');
     fs.rmSync(testDir, { recursive: true, force: true });
   });
 
   describe('InitCommand', () => {
     it('should initialize cc-hooks with empty settings', async () => {
-      const init = new InitCommand();
+      const init = new InitCommand(testDir);
       await init.execute({ force: true });
       
       // Check settings.json was created
@@ -78,7 +76,7 @@ describe('Command Integration Tests', () => {
       
       const consoleLog = jest.spyOn(console, 'log').mockImplementation();
       
-      const init = new InitCommand();
+      const init = new InitCommand(testDir);
       await init.execute();
       
       // Should warn about existing hooks
@@ -90,7 +88,7 @@ describe('Command Integration Tests', () => {
     });
 
     it('should not reinitialize without force flag', async () => {
-      const init = new InitCommand();
+      const init = new InitCommand(testDir);
       
       // First init with force
       await init.execute({ force: true });
@@ -107,7 +105,7 @@ describe('Command Integration Tests', () => {
     });
 
     it('should reinitialize with force flag', async () => {
-      const init = new InitCommand();
+      const init = new InitCommand(testDir);
       
       // First init
       await init.execute({ force: true });
@@ -123,7 +121,7 @@ describe('Command Integration Tests', () => {
   describe('UninitCommand', () => {
     it('should remove cc-hooks from settings and delete config', async () => {
       // Initialize first
-      const init = new InitCommand();
+      const init = new InitCommand(testDir);
       await init.execute({ force: true });
       
       // Add a hook to config
@@ -131,7 +129,7 @@ describe('Command Integration Tests', () => {
       fs.writeFileSync(configPath, JSON.stringify(config));
       
       // Uninit
-      const uninit = new UninitCommand();
+      const uninit = new UninitCommand(testDir);
       await uninit.execute();
       
       // Check settings.json no longer has cc-hooks
@@ -150,7 +148,7 @@ describe('Command Integration Tests', () => {
     it('should handle uninit when not initialized', async () => {
       const consoleLog = jest.spyOn(console, 'log').mockImplementation();
       
-      const uninit = new UninitCommand();
+      const uninit = new UninitCommand(testDir);
       await uninit.execute();
       
       expect(consoleLog).toHaveBeenCalledWith(
@@ -164,12 +162,12 @@ describe('Command Integration Tests', () => {
   describe('InstallCommand', () => {
     beforeEach(async () => {
       // Initialize first (force since no existing settings)
-      const init = new InitCommand();
+      const init = new InitCommand(testDir);
       await init.execute({ force: true });
     });
 
     it('should install a built-in template', async () => {
-      const install = new InstallCommand();
+      const install = new InstallCommand(testDir);
       await install.execute('typescript-lint');
       
       const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
@@ -190,7 +188,7 @@ describe('Command Integration Tests', () => {
       };
       fs.writeFileSync('test-hook.json', JSON.stringify(hookDef));
       
-      const install = new InstallCommand();
+      const install = new InstallCommand(testDir);
       await install.execute('./test-hook.json');
       
       const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
@@ -199,7 +197,7 @@ describe('Command Integration Tests', () => {
     });
 
     it('should reject duplicate hooks without force', async () => {
-      const install = new InstallCommand();
+      const install = new InstallCommand(testDir);
       
       // Install once
       await install.execute('typescript-lint');
@@ -211,7 +209,7 @@ describe('Command Integration Tests', () => {
     });
 
     it('should overwrite with force flag', async () => {
-      const install = new InstallCommand();
+      const install = new InstallCommand(testDir);
       
       // Install once
       await install.execute('typescript-lint');
@@ -227,7 +225,7 @@ describe('Command Integration Tests', () => {
       // Remove config to simulate not initialized
       fs.rmSync(configPath);
       
-      const install = new InstallCommand();
+      const install = new InstallCommand(testDir);
       await expect(install.execute('typescript-lint')).rejects.toThrow(
         'not initialized'
       );
@@ -237,15 +235,15 @@ describe('Command Integration Tests', () => {
   describe('UninstallCommand', () => {
     beforeEach(async () => {
       // Initialize and install a hook
-      const init = new InitCommand();
+      const init = new InitCommand(testDir);
       await init.execute({ force: true });
       
-      const install = new InstallCommand();
+      const install = new InstallCommand(testDir);
       await install.execute('typescript-lint');
     });
 
     it('should uninstall a hook by name', async () => {
-      const uninstall = new UninstallCommand();
+      const uninstall = new UninstallCommand(testDir);
       await uninstall.execute('typescript-lint');
       
       const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
@@ -253,7 +251,7 @@ describe('Command Integration Tests', () => {
     });
 
     it('should fail for non-existent hook', async () => {
-      const uninstall = new UninstallCommand();
+      const uninstall = new UninstallCommand(testDir);
       await expect(uninstall.execute('non-existent')).rejects.toThrow(
         'not found'
       );
@@ -266,7 +264,7 @@ describe('Command Integration Tests', () => {
       
       const consoleLog = jest.spyOn(console, 'log').mockImplementation();
       
-      const uninstall = new UninstallCommand();
+      const uninstall = new UninstallCommand(testDir);
       await uninstall.execute();
       
       expect(consoleLog).toHaveBeenCalledWith(
@@ -280,16 +278,16 @@ describe('Command Integration Tests', () => {
   describe('ShowCommand', () => {
     it('should show configured hooks', async () => {
       // Initialize and install hooks
-      const init = new InitCommand();
+      const init = new InitCommand(testDir);
       await init.execute({ force: true });
       
-      const install = new InstallCommand();
+      const install = new InstallCommand(testDir);
       await install.execute('typescript-lint');
       await install.execute('python-lint');
       
       const consoleLog = jest.spyOn(console, 'log').mockImplementation();
       
-      const show = new ShowCommand();
+      const show = new ShowCommand(testDir);
       await show.execute();
       
       expect(consoleLog).toHaveBeenCalledWith(
@@ -306,12 +304,12 @@ describe('Command Integration Tests', () => {
     });
 
     it('should show message when no hooks configured', async () => {
-      const init = new InitCommand();
+      const init = new InitCommand(testDir);
       await init.execute({ force: true });
       
       const consoleLog = jest.spyOn(console, 'log').mockImplementation();
       
-      const show = new ShowCommand();
+      const show = new ShowCommand(testDir);
       await show.execute();
       
       expect(consoleLog).toHaveBeenCalledWith(
@@ -322,15 +320,15 @@ describe('Command Integration Tests', () => {
     });
 
     it('should show verbose details with flag', async () => {
-      const init = new InitCommand();
+      const init = new InitCommand(testDir);
       await init.execute({ force: true });
       
-      const install = new InstallCommand();
+      const install = new InstallCommand(testDir);
       await install.execute('typescript-lint');
       
       const consoleLog = jest.spyOn(console, 'log').mockImplementation();
       
-      const show = new ShowCommand();
+      const show = new ShowCommand(testDir);
       await show.execute({ verbose: true });
       
       // Should show command details
@@ -345,7 +343,7 @@ describe('Command Integration Tests', () => {
   describe('MigrateCommand', () => {
     it('should migrate vanilla hooks to cc-hooks', async () => {
       // First initialize to get orchestrator
-      const init = new InitCommand();
+      const init = new InitCommand(testDir);
       await init.execute({ force: true });
       
       // Then add vanilla hooks alongside orchestrator
@@ -365,7 +363,7 @@ describe('Command Integration Tests', () => {
       fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
       
       // Migrate
-      const migrate = new MigrateCommand();
+      const migrate = new MigrateCommand(testDir);
       await migrate.execute();
       
       // Check hooks were migrated to config
@@ -384,12 +382,12 @@ describe('Command Integration Tests', () => {
 
     it('should handle no vanilla hooks', async () => {
       // Initialize with no vanilla hooks
-      const init = new InitCommand();
+      const init = new InitCommand(testDir);
       await init.execute({ force: true });
       
       const consoleLog = jest.spyOn(console, 'log').mockImplementation();
       
-      const migrate = new MigrateCommand();
+      const migrate = new MigrateCommand(testDir);
       await migrate.execute();
       
       expect(consoleLog).toHaveBeenCalledWith(
@@ -401,7 +399,7 @@ describe('Command Integration Tests', () => {
 
     it('should not migrate already migrated hooks', async () => {
       // Initialize first
-      const init = new InitCommand();
+      const init = new InitCommand(testDir);
       await init.execute({ force: true });
       
       // Add vanilla hook alongside orchestrator
@@ -413,7 +411,7 @@ describe('Command Integration Tests', () => {
       fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
       
       // Migrate once
-      const migrate = new MigrateCommand();
+      const migrate = new MigrateCommand(testDir);
       await migrate.execute();
       
       // Check that the vanilla hook was removed from settings

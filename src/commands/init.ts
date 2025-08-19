@@ -11,6 +11,7 @@ export interface InitOptions {
 
 export class InitCommand {
   private logger = getLogger();
+  private cwd: string;
   
   // All Claude events that we need to register
   private readonly CLAUDE_EVENTS: ClaudeEventName[] = [
@@ -23,6 +24,10 @@ export class InitCommand {
     'PreCompact',
     'SessionStart'
   ];
+
+  constructor(cwd?: string) {
+    this.cwd = cwd || process.cwd();
+  }
 
   async execute(options: InitOptions = {}): Promise<void> {
     try {
@@ -94,8 +99,8 @@ export class InitCommand {
   private findSettingsFile(): string | null {
     // Check in priority order: local > project > global
     const locations = [
-      path.join(process.cwd(), '.claude', 'settings.json'),
-      path.join(process.cwd(), 'settings.json'), 
+      path.join(this.cwd, '.claude', 'settings.json'),
+      path.join(this.cwd, 'settings.json'), 
       path.join(process.env.HOME || '', '.claude', 'settings.json')
     ];
 
@@ -111,7 +116,7 @@ export class InitCommand {
 
   private getDefaultSettingsPath(): string {
     // Default to project-level .claude/settings.json
-    return path.join(process.cwd(), '.claude', 'settings.json');
+    return path.join(this.cwd, '.claude', 'settings.json');
   }
 
   private getConfigPath(): string {

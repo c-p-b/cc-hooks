@@ -16,7 +16,8 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
-    "test": "jest",
+    "pretest": "npm run build",
+    "test": "jest --maxWorkers=50%",
     "test:unit": "jest __tests__/unit",
     "test:integration": "jest __tests__/integration",
     "test:watch": "jest --watch",

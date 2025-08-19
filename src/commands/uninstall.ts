@@ -10,6 +10,11 @@ import { ConfigLoader } from '../orchestrator/config-loader';
 export class UninstallCommand {
   private logger = getLogger();
   private configLoader = new ConfigLoader();
+  private cwd: string;
+
+  constructor(cwd?: string) {
+    this.cwd = cwd || process.cwd();
+  }
 
   async execute(hookName?: string): Promise<void> {
     try {
@@ -118,9 +123,9 @@ export class UninstallCommand {
 
   private findConfigFile(): string | null {
     const locations = [
-      path.join(process.cwd(), '.claude', 'cc-hooks-local.json'),
-      path.join(process.cwd(), '.claude', 'cc-hooks.json'),
-      path.join(process.cwd(), 'cc-hooks.json'),
+      path.join(this.cwd, '.claude', 'cc-hooks-local.json'),
+      path.join(this.cwd, '.claude', 'cc-hooks.json'),
+      path.join(this.cwd, 'cc-hooks.json'),
       path.join(process.env.HOME || '', '.claude', 'cc-hooks.json')
     ];
 

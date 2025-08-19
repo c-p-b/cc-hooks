@@ -10,6 +10,11 @@ export interface ShowOptions {
 
 export class ShowCommand {
   private configLoader = new ConfigLoader();
+  private cwd: string;
+
+  constructor(cwd?: string) {
+    this.cwd = cwd || process.cwd();
+  }
 
   async execute(options: ShowOptions = {}): Promise<void> {
     try {
@@ -112,9 +117,9 @@ export class ShowCommand {
 
   private findConfigFile(): string | null {
     const locations = [
-      path.join(process.cwd(), '.claude', 'cc-hooks-local.json'),
-      path.join(process.cwd(), '.claude', 'cc-hooks.json'),
-      path.join(process.cwd(), 'cc-hooks.json'),
+      path.join(this.cwd, '.claude', 'cc-hooks-local.json'),
+      path.join(this.cwd, '.claude', 'cc-hooks.json'),
+      path.join(this.cwd, 'cc-hooks.json'),
       path.join(process.env.HOME || '', '.claude', 'cc-hooks.json')
     ];
 
