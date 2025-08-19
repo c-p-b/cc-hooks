@@ -1,12 +1,12 @@
 // --- Core Enums and Types ---
-export type ClaudeEventName = 
-  | 'PreToolUse' 
-  | 'PostToolUse' 
-  | 'Stop' 
-  | 'UserPromptSubmit' 
-  | 'Notification' 
-  | 'SubagentStop' 
-  | 'PreCompact' 
+export type ClaudeEventName =
+  | 'PreToolUse'
+  | 'PostToolUse'
+  | 'Stop'
+  | 'UserPromptSubmit'
+  | 'Notification'
+  | 'SubagentStop'
+  | 'PreCompact'
   | 'SessionStart';
 
 export type FlowControlAction = 'success' | 'non-blocking-error' | 'blocking-error';
@@ -35,9 +35,9 @@ interface BaseHook {
   command: string[];
   description?: string;
   events: ClaudeEventName[];
-  matcher?: string;  // Tool name pattern for PreToolUse/PostToolUse (regex or "*" for all)
+  matcher?: string; // Tool name pattern for PreToolUse/PostToolUse (regex or "*" for all)
   priority?: number; // Execution and reporting priority (default: 100, lower = higher priority)
-  timeout?: number;  // Custom timeout in milliseconds (default: 30000)
+  timeout?: number; // Custom timeout in milliseconds (default: 30000)
 }
 
 /** Tier 1: Universal Text Hook. */
@@ -61,25 +61,25 @@ export interface ClaudeHookEvent {
   session_id: string;
   transcript_path: string;
   cwd: string;
-  
+
   // Tool events
   tool_name?: string;
   tool_input?: any;
-  tool_response?: any;  // PostToolUse only
-  
+  tool_response?: any; // PostToolUse only
+
   // Stop/SubagentStop
   stop_hook_active?: boolean;
-  
+
   // PreCompact
   trigger?: 'manual' | 'auto';
   custom_instructions?: string;
-  
+
   // SessionStart
   source?: 'startup' | 'resume' | 'clear';
-  
+
   // UserPromptSubmit
   prompt?: string;
-  
+
   // Notification
   message?: string;
 }
@@ -107,8 +107,8 @@ export interface ControlFlow {
 
 /** Resource limits configuration. */
 export interface ResourceLimits {
-  maxOutputBytes: number;  // Default: 1048576 (1MB)
-  timeoutMs: number;       // Default: 30000 (30s)
+  maxOutputBytes: number; // Default: 1048576 (1MB)
+  timeoutMs: number; // Default: 30000 (30s)
 }
 
 /** Hook execution result with resource tracking. */
@@ -117,14 +117,14 @@ export interface HookExecutionResult {
   stdout: string;
   stderr: string;
   exitCode: number;
-  truncated?: boolean;     // Indicates output was truncated
-  timedOut?: boolean;      // Indicates hook timed out
+  truncated?: boolean; // Indicates output was truncated
+  timedOut?: boolean; // Indicates hook timed out
 }
 
 /** Platform-specific configuration. */
 export interface PlatformConfig {
-  shell?: string;           // Platform-specific shell
-  pathSeparator: string;    // / or \
+  shell?: string; // Platform-specific shell
+  pathSeparator: string; // / or \
   taskKillCommand?: string; // Windows-specific
 }
 

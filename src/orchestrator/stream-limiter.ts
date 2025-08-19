@@ -11,7 +11,7 @@ export class StreamLimiter extends Transform {
   constructor(
     private readonly maxBytes: number,
     private readonly onLimitExceeded: () => void,
-    private readonly label: string = 'output'
+    private readonly label: string = 'output',
   ) {
     super();
   }
@@ -28,14 +28,14 @@ export class StreamLimiter extends Transform {
       // Kill the process IMMEDIATELY
       this.killed = true;
       this.onLimitExceeded();
-      
+
       // Emit event for logging/debugging
       this.emit('limit-exceeded', {
         label: this.label,
         bytesRead: this.bytesRead,
-        maxBytes: this.maxBytes
+        maxBytes: this.maxBytes,
       });
-      
+
       // End the stream
       this.push(null);
       callback();

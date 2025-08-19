@@ -38,7 +38,6 @@ program
     }
   });
 
-
 // Init command
 program
   .command('init')
@@ -180,10 +179,10 @@ program
 // Global error handler
 function handleError(error: unknown): void {
   logger.logError(error as Error);
-  
+
   if (error instanceof CCHooksError) {
     console.error(chalk.red(`Error: ${error.message}`));
-    
+
     // Provide helpful suggestions based on error type
     if (error.name === 'ConfigValidationError') {
       console.error(chalk.yellow('\nPlease check your cc-hooks.json configuration'));
@@ -200,7 +199,7 @@ function handleError(error: unknown): void {
   } else {
     console.error(chalk.red('An unknown error occurred'));
   }
-  
+
   process.exit(1);
 }
 

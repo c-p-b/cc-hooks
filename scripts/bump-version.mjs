@@ -1,25 +1,39 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
-const { Writable } = require('stream');
-const parser = require('conventional-commits-parser').CommitParser;
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
+import { CommitParser } from 'conventional-commits-parser';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Get commit message from command line
 const commitMsg = process.argv[2];
 if (!commitMsg) {
-  console.error('Usage: bump-version.js "commit message"');
+  console.error('Usage: bump-version.mjs "commit message"');
   process.exit(1);
 }
 
 // Parse the commit using the same parser as the PR validation
-const commitParser = new parser({});
-const parsed = commitParser.parse(commitMsg);
+const parser = new CommitParser({});
+const parsed = parser.parse(commitMsg);
 
 // Check if it's a valid conventional commit
 if (!parsed.type) {
   console.log('Not a conventional commit, skipping version bump');
+  process.exit(0);
+}
+
+// Only certain types trigger releases
+const releaseTriggers = ['feat', 'fix'];
+const isBreaking = parsed.notes.some(note => note.title === 'BREAKING CHANGE') || 
+                   commitMsg.includes(`${parsed.type}!:`);
+const shouldRelease = releaseTriggers.includes(parsed.type) || isBreaking;
+
+if (!shouldRelease) {
+  console.log(`Commit type '${parsed.type}' doesn't trigger a release`);
   process.exit(0);
 }
 
@@ -31,24 +45,14 @@ const currentVersion = pkg.version;
 // Parse semantic version
 const [major, minor, patch] = currentVersion.split('.').map(Number);
 
-// Determine version bump based on conventional commit type
+// Determine version bump
 let newVersion;
-
-// Check for breaking change in footer or with ! after type
-const isBreaking = parsed.notes.some(note => note.title === 'BREAKING CHANGE') || 
-                   commitMsg.includes(`${parsed.type}!:`);
-
 if (isBreaking) {
   newVersion = `${major + 1}.0.0`;
 } else if (parsed.type === 'feat') {
   newVersion = `${major}.${minor + 1}.0`;
 } else if (parsed.type === 'fix') {
   newVersion = `${major}.${minor}.${patch + 1}`;
-} else {
-  // For chore, docs, style, refactor, perf, test, build, ci, revert
-  // No version bump by default - you can change this if you want
-  console.log(`Commit type '${parsed.type}' doesn't trigger a release`);
-  process.exit(0);
 }
 
 console.log(`Bumping version: ${currentVersion} → ${newVersion}`);
@@ -74,8 +78,8 @@ const changeType = isBreaking ? 'BREAKING CHANGES' :
                    parsed.type === 'fix' ? 'Bug Fixes' : 'Changes';
 
 // Build changelog entry
-const description = parsed.subject || commitMsg;
 const scope = parsed.scope ? `**${parsed.scope}:** ` : '';
+const description = parsed.subject || parsed.header || commitMsg;
 const newEntry = `## [${newVersion}] - ${date}
 
 ### ${changeType}

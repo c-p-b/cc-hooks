@@ -12,7 +12,7 @@ export interface InitOptions {
 export class InitCommand {
   private logger = getLogger();
   private cwd: string;
-  
+
   // All Claude events that we need to register
   private readonly CLAUDE_EVENTS: ClaudeEventName[] = [
     'PreToolUse',
@@ -22,7 +22,7 @@ export class InitCommand {
     'Notification',
     'SubagentStop',
     'PreCompact',
-    'SessionStart'
+    'SessionStart',
   ];
 
   constructor(cwd?: string) {
@@ -33,17 +33,17 @@ export class InitCommand {
     try {
       // Find settings.json (check all three tiers)
       const settingsPath = this.findSettingsFile();
-      
+
       if (!settingsPath && !options.force) {
         throw new CCHooksError(
-          'No Claude settings.json found. Run with --force to create one, or create .claude/settings.json first.'
+          'No Claude settings.json found. Run with --force to create one, or create .claude/settings.json first.',
         );
       }
 
       // Create or load settings
       const settings = settingsPath ? this.loadSettings(settingsPath) : {};
       const targetPath = settingsPath || this.getDefaultSettingsPath();
-      
+
       // Check if already initialized
       if (!options.force && this.isAlreadyInitialized(settings)) {
         console.log(chalk.yellow('⚠ cc-hooks is already initialized'));
@@ -65,10 +65,10 @@ export class InitCommand {
 
       // Add orchestrator entries for all events
       const updatedSettings = this.addOrchestratorHooks(settings);
-      
+
       // Write updated settings
       await this.writeSettings(targetPath, updatedSettings);
-      
+
       // Create cc-hooks.json if it doesn't exist
       const configPath = this.getConfigPath();
       if (!fs.existsSync(configPath)) {
@@ -79,7 +79,7 @@ export class InitCommand {
       console.log(chalk.green('✓ cc-hooks initialized successfully'));
       console.log(chalk.gray(`  Settings: ${targetPath}`));
       console.log(chalk.gray(`  Config: ${configPath}`));
-      
+
       if (existingHooks.length > 0) {
         console.log();
         console.log(chalk.yellow('Next step: Run "cc-hooks migrate" to convert existing hooks'));
@@ -87,7 +87,6 @@ export class InitCommand {
         console.log();
         console.log(chalk.gray('Next step: Run "cc-hooks install <template>" to add hooks'));
       }
-      
     } catch (error) {
       if (error instanceof CCHooksError) {
         throw error;
@@ -100,8 +99,8 @@ export class InitCommand {
     // Check in priority order: local > project > global
     const locations = [
       path.join(this.cwd, '.claude', 'settings.json'),
-      path.join(this.cwd, 'settings.json'), 
-      path.join(process.env.HOME || '', '.claude', 'settings.json')
+      path.join(this.cwd, 'settings.json'),
+      path.join(process.env.HOME || '', '.claude', 'settings.json'),
     ];
 
     for (const location of locations) {
@@ -143,7 +142,7 @@ export class InitCommand {
 
   private isAlreadyInitialized(settings: any): boolean {
     if (!settings.hooks) return false;
-    
+
     // Check if orchestrator is already present for any event
     for (const event of this.CLAUDE_EVENTS) {
       const eventHooks = settings.hooks[event];
@@ -159,15 +158,15 @@ export class InitCommand {
         }
       }
     }
-    
+
     return false;
   }
 
   private detectVanillaHooks(settings: any): string[] {
     const vanillaHooks: string[] = [];
-    
+
     if (!settings.hooks) return vanillaHooks;
-    
+
     for (const event of this.CLAUDE_EVENTS) {
       const eventHooks = settings.hooks[event];
       if (Array.isArray(eventHooks)) {
@@ -183,7 +182,7 @@ export class InitCommand {
         }
       }
     }
-    
+
     return vanillaHooks;
   }
 
@@ -198,29 +197,41 @@ export class InitCommand {
       // Different events have different structures
       if (event === 'PreToolUse' || event === 'PostToolUse') {
         // These events support matchers
-        settings.hooks[event] = [{
-          matcher: '*',
-          hooks: [{
-            type: 'command',
-            command: 'cc-hooks run'
-          }]
-        }];
+        settings.hooks[event] = [
+          {
+            matcher: '*',
+            hooks: [
+              {
+                type: 'command',
+                command: 'cc-hooks run',
+              },
+            ],
+          },
+        ];
       } else if (event === 'PreCompact' || event === 'SessionStart') {
         // These events have optional matchers/source
-        settings.hooks[event] = [{
-          hooks: [{
-            type: 'command',
-            command: 'cc-hooks run'
-          }]
-        }];
+        settings.hooks[event] = [
+          {
+            hooks: [
+              {
+                type: 'command',
+                command: 'cc-hooks run',
+              },
+            ],
+          },
+        ];
       } else {
         // Stop, UserPromptSubmit, Notification, SubagentStop
-        settings.hooks[event] = [{
-          hooks: [{
-            type: 'command',
-            command: 'cc-hooks run'
-          }]
-        }];
+        settings.hooks[event] = [
+          {
+            hooks: [
+              {
+                type: 'command',
+                command: 'cc-hooks run',
+              },
+            ],
+          },
+        ];
       }
     }
 
@@ -242,7 +253,7 @@ export class InitCommand {
 
   private async createEmptyConfig(configPath: string): Promise<void> {
     const emptyConfig: HooksConfigFile = {
-      hooks: []
+      hooks: [],
     };
 
     const content = JSON.stringify(emptyConfig, null, 2);

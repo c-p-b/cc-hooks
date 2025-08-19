@@ -44,15 +44,15 @@ export class ProcessManager {
     // Use process groups on Unix for clean kill of child trees
     const spawnOptions: SpawnOptions = {
       ...options,
-      detached: !IS_WINDOWS,  // Create new process group on Unix
+      detached: !IS_WINDOWS, // Create new process group on Unix
     };
 
     const child = spawn(command[0]!, command.slice(1), spawnOptions);
-    
+
     this.processes.set(id, {
       process: child,
       command,
-      startTime: Date.now()
+      startTime: Date.now(),
     });
 
     // Clean up when process exits
@@ -77,7 +77,7 @@ export class ProcessManager {
     if (!entry) return;
 
     const { process: proc } = entry;
-    
+
     if (IS_WINDOWS) {
       proc.kill(signal);
     } else {
@@ -103,10 +103,10 @@ export class ProcessManager {
    */
   private async handleShutdown(signal: string): Promise<void> {
     if (this.shutdownInitiated) return;
-    
+
     this.shutdownInitiated = true;
     this.logger.log(`Received ${signal}, initiating graceful shutdown`);
-    
+
     await this.cleanup();
     process.exit(0);
   }
@@ -122,34 +122,34 @@ export class ProcessManager {
     // Phase 1: Send SIGTERM for graceful shutdown
     for (const [, entry] of this.processes) {
       const { process: proc } = entry;
-      
+
       if (IS_WINDOWS) {
         proc.kill('SIGTERM');
       } else {
         // Kill entire process group
         try {
           process.kill(-proc.pid!, 'SIGTERM');
-        } catch (err) {
+        } catch {
           // Process might already be dead
         }
       }
     }
 
     // Give processes 2 seconds to die gracefully
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     // Phase 2: Force kill any survivors
     for (const [id, entry] of this.processes) {
       const { process: proc } = entry;
-      
+
       if (!proc.killed) {
         this.logger.log(`Force killing process ${id}`);
-        
+
         if (IS_WINDOWS) {
           // Use taskkill to kill process tree on Windows
           try {
             const killer = spawn('taskkill', ['/F', '/T', '/PID', proc.pid!.toString()], {
-              stdio: 'ignore'
+              stdio: 'ignore',
             });
             killer.unref();
           } catch (err) {
@@ -159,7 +159,7 @@ export class ProcessManager {
           // SIGKILL the process group
           try {
             process.kill(-proc.pid!, 'SIGKILL');
-          } catch (err) {
+          } catch {
             // Process might already be dead
           }
         }
@@ -175,15 +175,15 @@ export class ProcessManager {
    */
   getProcessInfo(): Array<{ id: string; command: string[]; uptime: number }> {
     const info: Array<{ id: string; command: string[]; uptime: number }> = [];
-    
+
     for (const [id, entry] of this.processes) {
       info.push({
         id,
         command: entry.command,
-        uptime: Date.now() - entry.startTime
+        uptime: Date.now() - entry.startTime,
       });
     }
-    
+
     return info;
   }
 }

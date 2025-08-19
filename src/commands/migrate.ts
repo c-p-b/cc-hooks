@@ -14,7 +14,7 @@ export class MigrateCommand {
   private logger = getLogger();
   private configLoader = new ConfigLoader();
   private cwd: string;
-  
+
   private readonly CLAUDE_EVENTS: ClaudeEventName[] = [
     'PreToolUse',
     'PostToolUse',
@@ -23,7 +23,7 @@ export class MigrateCommand {
     'Notification',
     'SubagentStop',
     'PreCompact',
-    'SessionStart'
+    'SessionStart',
   ];
 
   constructor(cwd?: string) {
@@ -40,18 +40,22 @@ export class MigrateCommand {
 
       // Load settings
       const settings = this.loadSettings(settingsPath);
-      
+
       // Find vanilla hooks
       const vanillaHooks = this.extractVanillaHooks(settings);
-      
+
       if (vanillaHooks.length === 0) {
         console.log(chalk.yellow('No vanilla hooks found to migrate'));
         return;
       }
 
-      console.log(chalk.bold(`Found ${vanillaHooks.length} vanilla hook${vanillaHooks.length === 1 ? '' : 's'} to migrate:`));
+      console.log(
+        chalk.bold(
+          `Found ${vanillaHooks.length} vanilla hook${vanillaHooks.length === 1 ? '' : 's'} to migrate:`,
+        ),
+      );
       console.log();
-      
+
       for (const hook of vanillaHooks) {
         console.log(chalk.cyan(`• ${hook.event}: ${hook.command}`));
       }
@@ -68,19 +72,17 @@ export class MigrateCommand {
 
       // Load or create cc-hooks config
       const configPath = this.getConfigPath(settingsPath);
-      const config = fs.existsSync(configPath) 
-        ? this.configLoader.load(configPath)
-        : { hooks: [] };
+      const config = fs.existsSync(configPath) ? this.configLoader.load(configPath) : { hooks: [] };
 
       // Convert vanilla hooks to cc-hooks format
       const convertedHooks = this.convertHooks(vanillaHooks);
-      
+
       // Add to config (checking for duplicates)
       let added = 0;
       let skipped = 0;
-      
+
       for (const hook of convertedHooks) {
-        const existing = config.hooks.find(h => h.name === hook.name);
+        const existing = config.hooks.find((h) => h.name === hook.name);
         if (existing) {
           console.log(chalk.yellow(`⚠ Skipping duplicate: ${hook.name}`));
           skipped++;
@@ -92,14 +94,14 @@ export class MigrateCommand {
 
       // Save cc-hooks config
       await this.saveConfig(configPath, config);
-      
+
       // Backup settings before removing vanilla hooks
       await this.backupSettings(settingsPath);
-      
+
       // Remove vanilla hooks from settings
       const cleanedSettings = this.removeVanillaHooks(settings);
       await this.writeSettings(settingsPath, cleanedSettings);
-      
+
       // Report results
       console.log();
       console.log(chalk.green(`✓ Migration completed`));
@@ -111,7 +113,6 @@ export class MigrateCommand {
       console.log();
       console.log(chalk.gray('Vanilla hooks have been removed from settings.json'));
       console.log(chalk.gray('Run "cc-hooks show" to view migrated hooks'));
-      
     } catch (error) {
       if (error instanceof CCHooksError) {
         throw error;
@@ -124,7 +125,7 @@ export class MigrateCommand {
     const locations = [
       path.join(this.cwd, '.claude', 'settings.json'),
       path.join(this.cwd, 'settings.json'),
-      path.join(process.env.HOME || '', '.claude', 'settings.json')
+      path.join(process.env.HOME || '', '.claude', 'settings.json'),
     ];
 
     for (const location of locations) {
@@ -150,11 +151,13 @@ export class MigrateCommand {
     }
   }
 
-  private extractVanillaHooks(settings: any): Array<{event: ClaudeEventName, command: string, matcher?: string}> {
-    const hooks: Array<{event: ClaudeEventName, command: string, matcher?: string}> = [];
-    
+  private extractVanillaHooks(
+    settings: any,
+  ): Array<{ event: ClaudeEventName; command: string; matcher?: string }> {
+    const hooks: Array<{ event: ClaudeEventName; command: string; matcher?: string }> = [];
+
     if (!settings.hooks) return hooks;
-    
+
     for (const event of this.CLAUDE_EVENTS) {
       const eventHooks = settings.hooks[event];
       if (Array.isArray(eventHooks)) {
@@ -166,7 +169,7 @@ export class MigrateCommand {
                 hooks.push({
                   event: event,
                   command: hook.command,
-                  matcher: matcher.matcher
+                  matcher: matcher.matcher,
                 });
               }
             }
@@ -174,20 +177,22 @@ export class MigrateCommand {
         }
       }
     }
-    
+
     return hooks;
   }
 
-  private convertHooks(vanillaHooks: Array<{event: ClaudeEventName, command: string, matcher?: string}>): TextHook[] {
+  private convertHooks(
+    vanillaHooks: Array<{ event: ClaudeEventName; command: string; matcher?: string }>,
+  ): TextHook[] {
     const converted: TextHook[] = [];
-    
+
     for (const vanilla of vanillaHooks) {
       // Generate a name from the command
       const name = this.generateHookName(vanilla.command);
-      
+
       // Parse command into array
       const commandArray = this.parseCommand(vanilla.command);
-      
+
       // Create text hook with sensible defaults
       const hook: TextHook = {
         name,
@@ -197,20 +202,20 @@ export class MigrateCommand {
         outputFormat: 'text',
         exitCodeMap: {
           '0': 'success',
-          'default': 'non-blocking-error'
+          default: 'non-blocking-error',
         },
         message: `Hook '${name}' failed`,
-        timeout: 30000
+        timeout: 30000,
       };
-      
+
       // Add matcher only if present
       if (vanilla.matcher !== undefined) {
         (hook as any).matcher = vanilla.matcher;
       }
-      
+
       converted.push(hook);
     }
-    
+
     return converted;
   }
 
@@ -219,18 +224,18 @@ export class MigrateCommand {
     const parts = command.split(/\s+/);
     const firstPart = parts[0] || 'hook';
     const executable = path.basename(firstPart);
-    
+
     // Remove common prefixes
     let name = executable.replace(/^(npx|npm|yarn|pnpm|node|python|python3|ruby|sh|bash)$/, '');
-    
+
     // If we removed everything, use the second part
     if (!name && parts.length > 1) {
       name = parts[1] || 'hook';
     }
-    
+
     // Clean up and make valid
     name = name.replace(/[^a-zA-Z0-9-_]/g, '-');
-    
+
     // Add timestamp to ensure uniqueness
     return `${name || 'hook'}-${Date.now()}`;
   }
@@ -242,12 +247,12 @@ export class MigrateCommand {
     let current = '';
     let inQuote = false;
     let quoteChar = '';
-    
+
     for (let i = 0; i < command.length; i++) {
       const char = command[i];
-      
+
       if (inQuote) {
-        if (char === quoteChar && command[i-1] !== '\\') {
+        if (char === quoteChar && command[i - 1] !== '\\') {
           inQuote = false;
           quoteChar = '';
         } else {
@@ -267,11 +272,11 @@ export class MigrateCommand {
         }
       }
     }
-    
+
     if (current) {
       parts.push(current);
     }
-    
+
     return parts.length > 0 ? parts : [command];
   }
 
@@ -285,9 +290,7 @@ export class MigrateCommand {
         for (const matcher of eventHooks) {
           if (Array.isArray(matcher.hooks)) {
             // Keep only cc-hooks orchestrator
-            matcher.hooks = matcher.hooks.filter((hook: any) => 
-              hook.command === 'cc-hooks run'
-            );
+            matcher.hooks = matcher.hooks.filter((hook: any) => hook.command === 'cc-hooks run');
           }
         }
       }
@@ -297,9 +300,10 @@ export class MigrateCommand {
   }
 
   private async confirmMigration(): Promise<boolean> {
-    const readline = require('readline').createInterface({
+    const { createInterface } = await import('readline');
+    const readline = createInterface({
       input: process.stdin,
-      output: process.stdout
+      output: process.stdout,
     });
 
     return new Promise((resolve) => {

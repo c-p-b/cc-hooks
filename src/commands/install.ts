@@ -25,28 +25,24 @@ export class InstallCommand {
       // Check if cc-hooks is initialized
       const configPath = this.findConfigFile();
       if (!configPath) {
-        throw new CCHooksError(
-          'cc-hooks is not initialized. Run "cc-hooks init" first.'
-        );
+        throw new CCHooksError('cc-hooks is not initialized. Run "cc-hooks init" first.');
       }
 
       // Resolve the hook source
       const hookDef = await this.resolveHookSource(source);
-      
+
       // Load existing config
       const config = this.configLoader.load(configPath);
-      
+
       // Check for conflicts
-      const existingHook = config.hooks.find(h => h.name === hookDef.name);
+      const existingHook = config.hooks.find((h) => h.name === hookDef.name);
       if (existingHook && !options.force) {
-        throw new CCHooksError(
-          `Hook '${hookDef.name}' already exists. Use --force to overwrite.`
-        );
+        throw new CCHooksError(`Hook '${hookDef.name}' already exists. Use --force to overwrite.`);
       }
 
       // Add or replace the hook
       if (existingHook) {
-        const index = config.hooks.findIndex(h => h.name === hookDef.name);
+        const index = config.hooks.findIndex((h) => h.name === hookDef.name);
         config.hooks[index] = hookDef;
         console.log(chalk.yellow(`⚠ Replaced existing hook: ${hookDef.name}`));
       } else {
@@ -56,12 +52,11 @@ export class InstallCommand {
 
       // Save updated config
       await this.saveConfig(configPath, config);
-      
+
       // Show hook details
       console.log(chalk.gray(`  Description: ${hookDef.description || 'N/A'}`));
       console.log(chalk.gray(`  Events: ${hookDef.events.join(', ')}`));
       console.log(chalk.gray(`  Command: ${hookDef.command.join(' ')}`));
-      
     } catch (error) {
       if (error instanceof CCHooksError) {
         throw error;
@@ -89,10 +84,10 @@ export class InstallCommand {
 
     throw new CCHooksError(
       `Unable to resolve hook source: ${source}\n` +
-      `Try one of:\n` +
-      `  - Built-in template name (e.g., typescript-lint)\n` +
-      `  - Local path (e.g., ./my-hook.json)\n` +
-      `  - Git URL (e.g., https://github.com/user/repo)`
+        `Try one of:\n` +
+        `  - Built-in template name (e.g., typescript-lint)\n` +
+        `  - Local path (e.g., ./my-hook.json)\n` +
+        `  - Git URL (e.g., https://github.com/user/repo)`,
     );
   }
 
@@ -100,7 +95,7 @@ export class InstallCommand {
     try {
       // Look for template in package's templates directory
       let templatePath = path.join(__dirname, '..', '..', 'templates', `${name}.json`);
-      
+
       if (!fs.existsSync(templatePath)) {
         // Try without .json extension if name already has it
         const altPath = path.join(__dirname, '..', '..', 'templates', name);
@@ -113,7 +108,7 @@ export class InstallCommand {
 
       const content = fs.readFileSync(templatePath, 'utf-8');
       const hookDef = JSON.parse(content);
-      
+
       // Validate the hook definition
       return this.validateHookDefinition(hookDef);
     } catch (error) {
@@ -124,20 +119,18 @@ export class InstallCommand {
 
   private async loadLocalHook(hookPath: string): Promise<HookDefinition> {
     const resolvedPath = path.resolve(hookPath);
-    
+
     if (!fs.existsSync(resolvedPath)) {
       throw new CCHooksError(`Hook file not found: ${resolvedPath}`);
     }
 
     const stat = fs.statSync(resolvedPath);
-    
+
     if (stat.isDirectory()) {
       // Look for hook.json in the directory
       const hookFile = path.join(resolvedPath, 'hook.json');
       if (!fs.existsSync(hookFile)) {
-        throw new CCHooksError(
-          `No hook.json found in directory: ${resolvedPath}`
-        );
+        throw new CCHooksError(`No hook.json found in directory: ${resolvedPath}`);
       }
       return this.loadHookFile(hookFile);
     } else {
@@ -148,37 +141,36 @@ export class InstallCommand {
 
   private async loadGitHook(gitUrl: string): Promise<HookDefinition> {
     console.log(chalk.gray(`Cloning from ${gitUrl}...`));
-    
+
     // Create temp directory
     const tempDir = path.join(process.env.TMPDIR || '/tmp', `cc-hooks-${Date.now()}`);
-    
+
     try {
       // Clone the repository
       execSync(`git clone --depth 1 --quiet "${gitUrl}" "${tempDir}"`, {
-        stdio: 'pipe'
+        stdio: 'pipe',
       });
 
       // Look for hook.json or hooks/ directory
       const hookFile = path.join(tempDir, 'hook.json');
       const hooksDir = path.join(tempDir, 'hooks');
-      
+
       if (fs.existsSync(hookFile)) {
         // Single hook repository
         return this.loadHookFile(hookFile);
       } else if (fs.existsSync(hooksDir)) {
         // Multiple hooks repository - list available hooks
-        const hooks = fs.readdirSync(hooksDir)
-          .filter(f => f.endsWith('.json'))
-          .map(f => f.replace('.json', ''));
-        
+        const hooks = fs
+          .readdirSync(hooksDir)
+          .filter((f) => f.endsWith('.json'))
+          .map((f) => f.replace('.json', ''));
+
         throw new CCHooksError(
           `Multiple hooks found in repository. Install specific hook:\n` +
-          hooks.map(h => `  cc-hooks install ${gitUrl}#${h}`).join('\n')
+            hooks.map((h) => `  cc-hooks install ${gitUrl}#${h}`).join('\n'),
         );
       } else {
-        throw new CCHooksError(
-          `No hook.json or hooks/ directory found in repository: ${gitUrl}`
-        );
+        throw new CCHooksError(`No hook.json or hooks/ directory found in repository: ${gitUrl}`);
       }
     } finally {
       // Clean up temp directory
@@ -227,11 +219,13 @@ export class InstallCommand {
   }
 
   private isGitUrl(source: string): boolean {
-    return source.startsWith('https://') || 
-           source.startsWith('git://') || 
-           source.startsWith('git@') ||
-           source.includes('github.com') ||
-           source.includes('gitlab.com');
+    return (
+      source.startsWith('https://') ||
+      source.startsWith('git://') ||
+      source.startsWith('git@') ||
+      source.includes('github.com') ||
+      source.includes('gitlab.com')
+    );
   }
 
   private findConfigFile(): string | null {
@@ -239,7 +233,7 @@ export class InstallCommand {
       path.join(this.cwd, '.claude', 'cc-hooks-local.json'),
       path.join(this.cwd, '.claude', 'cc-hooks.json'),
       path.join(this.cwd, 'cc-hooks.json'),
-      path.join(process.env.HOME || '', '.claude', 'cc-hooks.json')
+      path.join(process.env.HOME || '', '.claude', 'cc-hooks.json'),
     ];
 
     for (const location of locations) {

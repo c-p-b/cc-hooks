@@ -175,7 +175,7 @@ jobs:
           fi
           
           # Try to bump version (script will exit 0 if no bump needed)
-          if node scripts/bump-version.js "$COMMIT_MSG"; then
+          if node scripts/bump-version.mjs "$COMMIT_MSG"; then
             # Check if version actually changed
             if git diff --quiet package.json; then
               echo "No version change needed"
