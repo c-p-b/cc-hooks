@@ -93,13 +93,13 @@ jobs:
           path: dist/
           retention-days: 1
 
-  # Test on Node 20 (LTS) and 22 (current)
+  # Test on Node 20 (LTS), 22 (current), and 24 (next LTS)
   test:
     needs: [build]
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node: ['20', '22']
+        node: ['20', '22', '24']
       fail-fast: false
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
