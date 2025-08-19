@@ -166,7 +166,7 @@ describe('Core Features Integration Tests', () => {
     it('should enforce output limits', async () => {
       const chattyHook: TextHook = {
         name: 'output-limit-test',
-        command: ['sh', '-c', 'for i in {1..10000}; do echo "Line $i: This is a long line that will exceed limits"; done'],
+        command: ['sh', '-c', 'i=1; while [ $i -le 10000 ]; do echo "Line $i: This is a long line that will exceed limits"; i=$((i+1)); done'],
         events: ['Stop'],
         outputFormat: 'text',
         exitCodeMap: { '0': 'success', 'default': 'non-blocking-error' },
