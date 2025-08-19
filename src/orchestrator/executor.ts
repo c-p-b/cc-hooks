@@ -1,12 +1,12 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { spawnSync } from 'child_process';
-import { 
-  HookDefinition, 
-  ClaudeHookEvent, 
+import {
+  HookDefinition,
+  ClaudeHookEvent,
   HookExecutionResult,
   ResourceLimits,
-  LogEntry
+  LogEntry,
 } from '../common/types';
 import { ProcessManager } from './process-manager';
 import { StreamLimiter } from './stream-limiter';
@@ -42,7 +42,7 @@ export class HookExecutor {
     this.processManager = new ProcessManager();
     this.resultMapper = new ResultMapper();
   }
-  
+
   /**
    * Get the project root for CLAUDE_PROJECT_DIR environment variable.
    * Tries in order: env var from Claude, git root, .claude upward search, cwd
@@ -52,13 +52,13 @@ export class HookExecutor {
     if (process.env.CLAUDE_PROJECT_DIR) {
       return process.env.CLAUDE_PROJECT_DIR;
     }
-    
+
     // For testing: Try git root first
     try {
       const gitResult = spawnSync('git', ['rev-parse', '--show-toplevel'], {
         cwd,
         encoding: 'utf8',
-        timeout: 1000
+        timeout: 1000,
       });
       if (gitResult.status === 0 && gitResult.stdout) {
         const gitRoot = gitResult.stdout.trim();
@@ -67,18 +67,21 @@ export class HookExecutor {
           return gitRoot;
         }
       }
-    } catch (err) {
+    } catch {
       // Git command failed, continue to next method
     }
-    
+
     // Try finding .claude directory via upward search
     let currentDir = cwd;
     while (currentDir !== '/' && currentDir !== path.parse(currentDir).root) {
       const claudePath = path.join(currentDir, '.claude');
       try {
-        const stats = require('fs').statSync(claudePath);
+        const fs = require('fs');
+        const stats = fs.statSync(claudePath);
         if (stats.isDirectory()) {
-          this.logger.logDebug(`No CLAUDE_PROJECT_DIR set. No git root found. Found .claude/ at: ${currentDir}`);
+          this.logger.logDebug(
+            `No CLAUDE_PROJECT_DIR set. No git root found. Found .claude/ at: ${currentDir}`,
+          );
           return currentDir;
         }
       } catch {
@@ -86,9 +89,11 @@ export class HookExecutor {
       }
       currentDir = path.dirname(currentDir);
     }
-    
+
     // Fallback to current working directory
-    console.error(`[cc-hooks] WARNING: No CLAUDE_PROJECT_DIR, no git root, no .claude/ found. Using cwd: ${cwd}`);
+    console.error(
+      `[cc-hooks] WARNING: No CLAUDE_PROJECT_DIR, no git root, no .claude/ found. Using cwd: ${cwd}`,
+    );
     return cwd;
   }
 
@@ -98,10 +103,10 @@ export class HookExecutor {
   async execute(hook: HookDefinition, context: ExecutionContext): Promise<HookResult> {
     // Trigger cleanup opportunistically (async, non-blocking)
     LogCleaner.cleanupIfNeeded(context.event.session_id);
-    
+
     const startTime = Date.now();
     const processId = `${hook.name}-${startTime}`;
-    
+
     const limits = context.resourceLimits || DEFAULT_RESOURCE_LIMITS;
     const timeout = hook.timeout || limits.timeoutMs;
 
@@ -121,14 +126,14 @@ export class HookExecutor {
         cwd: context.event.cwd,
         env: {
           ...process.env,
-          CLAUDE_PROJECT_DIR: projectRoot
+          CLAUDE_PROJECT_DIR: projectRoot,
         },
-        stdio: ['pipe', 'pipe', 'pipe']
+        stdio: ['pipe', 'pipe', 'pipe'],
       });
 
       // Write event data to stdin
       const eventJson = JSON.stringify(context.event);
-      
+
       // Handle EPIPE errors gracefully - some commands don't read stdin
       child.stdin?.on('error', (err: Error) => {
         if ((err as any).code !== 'EPIPE') {
@@ -136,7 +141,7 @@ export class HookExecutor {
           this.logger.log(`Hook '${hook.name}' stdin error: ${err.message}`);
         }
       });
-      
+
       child.stdin?.write(eventJson);
       child.stdin?.end();
 
@@ -148,7 +153,7 @@ export class HookExecutor {
           this.logger.log(`Hook '${hook.name}' stdout exceeded limit, killing process`);
           child.kill('SIGKILL');
         },
-        'stdout'
+        'stdout',
       );
 
       const stderrLimiter = new StreamLimiter(
@@ -158,7 +163,7 @@ export class HookExecutor {
           this.logger.log(`Hook '${hook.name}' stderr exceeded limit, killing process`);
           child.kill('SIGKILL');
         },
-        'stderr'
+        'stderr',
       );
 
       // Pipe and collect output
@@ -180,10 +185,10 @@ export class HookExecutor {
       timeoutHandle = setTimeout(() => {
         timedOut = true;
         this.logger.log(`Hook '${hook.name}' timed out after ${timeout}ms`);
-        
+
         // Two-phase kill: SIGTERM first
         child.kill('SIGTERM');
-        
+
         // SIGKILL after 2 seconds if still alive
         killHandle = setTimeout(() => {
           if (!child.killed) {
@@ -193,11 +198,13 @@ export class HookExecutor {
       }, timeout);
 
       // Wait for process to exit
-      const [exitCode, signal] = await new Promise<[number | null, NodeJS.Signals | null]>((resolve) => {
-        child.on('exit', (code, sig) => {
-          resolve([code, sig]);
-        });
-      });
+      const [exitCode, signal] = await new Promise<[number | null, NodeJS.Signals | null]>(
+        (resolve) => {
+          child.on('exit', (code, sig) => {
+            resolve([code, sig]);
+          });
+        },
+      );
 
       // Clear timeouts
       if (timeoutHandle) {
@@ -216,7 +223,7 @@ export class HookExecutor {
         stderr: stderrData,
         exitCode: exitCode || 0,
         truncated,
-        timedOut
+        timedOut,
       };
 
       // Map the result
@@ -232,16 +239,15 @@ export class HookExecutor {
         exitCode,
         signal,
         timedOut,
-        truncated
+        truncated,
       };
-      
+
       // Log to session file (async, best effort)
       this.logResult(result, context.event).catch(() => {
         // Ignore logging errors
       });
-      
-      return result;
 
+      return result;
     } catch (error) {
       // Clean up timeouts
       if (timeoutHandle) {
@@ -258,7 +264,7 @@ export class HookExecutor {
         hook.name,
         1,
         error instanceof Error ? error.message : String(error),
-        false
+        false,
       );
     }
   }
@@ -268,9 +274,9 @@ export class HookExecutor {
    */
   async executeAll(hooks: HookDefinition[], context: ExecutionContext): Promise<HookResult[]> {
     this.logger.log(`Executing ${hooks.length} hooks in parallel`);
-    
-    const promises = hooks.map(hook => 
-      this.execute(hook, context).catch(error => {
+
+    const promises = hooks.map((hook) =>
+      this.execute(hook, context).catch((error) => {
         // Convert errors to results for partial failure handling
         const duration = 0;
         return {
@@ -282,9 +288,9 @@ export class HookExecutor {
           exitCode: 1,
           signal: null,
           timedOut: false,
-          truncated: false
+          truncated: false,
         };
-      })
+      }),
     );
 
     return Promise.all(promises);
@@ -296,10 +302,10 @@ export class HookExecutor {
   private async logResult(result: HookResult, event: ClaudeHookEvent): Promise<void> {
     const sessionsDir = LogCleaner.getSessionsDir();
     const logFile = path.join(sessionsDir, `session-${event.session_id}.jsonl`);
-    
+
     // Ensure directory exists
     await fs.mkdir(sessionsDir, { recursive: true });
-    
+
     // Create log entry
     const logEntry: LogEntry = {
       timestamp: new Date().toISOString(),
@@ -310,9 +316,9 @@ export class HookExecutor {
       duration: result.duration,
       truncated: result.truncated,
       timed_out: result.timedOut,
-      flow_control: result.flowControl
+      flow_control: result.flowControl,
     };
-    
+
     // Append to session log (atomic append)
     await fs.appendFile(logFile, JSON.stringify(logEntry) + '\n');
   }

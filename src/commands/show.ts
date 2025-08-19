@@ -10,6 +10,11 @@ export interface ShowOptions {
 
 export class ShowCommand {
   private configLoader = new ConfigLoader();
+  private cwd: string;
+
+  constructor(cwd?: string) {
+    this.cwd = cwd || process.cwd();
+  }
 
   async execute(options: ShowOptions = {}): Promise<void> {
     try {
@@ -23,7 +28,7 @@ export class ShowCommand {
 
       // Load config
       const config = this.configLoader.load(configPath);
-      
+
       // Show config location
       console.log(chalk.gray(`Configuration: ${configPath}`));
       console.log();
@@ -36,7 +41,11 @@ export class ShowCommand {
       }
 
       // Display hooks
-      console.log(chalk.bold(`${config.hooks.length} hook${config.hooks.length === 1 ? '' : 's'} configured:`));
+      console.log(
+        chalk.bold(
+          `${config.hooks.length} hook${config.hooks.length === 1 ? '' : 's'} configured:`,
+        ),
+      );
       console.log();
 
       for (const hook of config.hooks) {
@@ -49,26 +58,26 @@ export class ShowCommand {
         // Basic info
         console.log(chalk.gray(`  Events: ${hook.events.join(', ')}`));
         console.log(chalk.gray(`  Type: ${hook.outputFormat}`));
-        
+
         if (options.verbose) {
           // Command
           console.log(chalk.gray(`  Command: ${hook.command.join(' ')}`));
-          
+
           // Priority
           if (hook.priority !== undefined) {
             console.log(chalk.gray(`  Priority: ${hook.priority}`));
           }
-          
+
           // Timeout
           if (hook.timeout !== undefined) {
             console.log(chalk.gray(`  Timeout: ${hook.timeout}ms`));
           }
-          
+
           // Matcher (for tool hooks)
           if (hook.matcher !== undefined) {
             console.log(chalk.gray(`  Matcher: ${hook.matcher}`));
           }
-          
+
           // Text hook specific
           if (hook.outputFormat === 'text') {
             console.log(chalk.gray(`  Message: ${hook.message}`));
@@ -83,7 +92,7 @@ export class ShowCommand {
             }
           }
         }
-        
+
         console.log();
       }
 
@@ -101,7 +110,6 @@ export class ShowCommand {
       if (!options.verbose) {
         console.log(chalk.gray('Use --verbose for more details'));
       }
-      
     } catch (error) {
       if (error instanceof CCHooksError) {
         throw error;
@@ -112,10 +120,10 @@ export class ShowCommand {
 
   private findConfigFile(): string | null {
     const locations = [
-      path.join(process.cwd(), '.claude', 'cc-hooks-local.json'),
-      path.join(process.cwd(), '.claude', 'cc-hooks.json'),
-      path.join(process.cwd(), 'cc-hooks.json'),
-      path.join(process.env.HOME || '', '.claude', 'cc-hooks.json')
+      path.join(this.cwd, '.claude', 'cc-hooks-local.json'),
+      path.join(this.cwd, '.claude', 'cc-hooks.json'),
+      path.join(this.cwd, 'cc-hooks.json'),
+      path.join(process.env.HOME || '', '.claude', 'cc-hooks.json'),
     ];
 
     for (const location of locations) {

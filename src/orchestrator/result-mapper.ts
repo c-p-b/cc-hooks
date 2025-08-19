@@ -1,10 +1,10 @@
-import { 
-  TextHook, 
-  StructuredHook, 
+import {
+  TextHook,
+  StructuredHook,
   HookDefinition,
   FlowControlAction,
   DiagnosticReport,
-  HookExecutionResult
+  HookExecutionResult,
 } from '../common/types';
 import { getLogger } from '../common/logger';
 
@@ -13,7 +13,7 @@ export interface MappedResult {
   message?: string;
   diagnostics?: DiagnosticReport;
   rawOutput: string;
-  jsonOutput?: any;  // Parsed JSON output for structured hooks
+  jsonOutput?: any; // Parsed JSON output for structured hooks
 }
 
 /**
@@ -38,15 +38,15 @@ export class ResultMapper {
    */
   private mapTextHook(hook: TextHook, result: HookExecutionResult): MappedResult {
     const exitCode = result.exitCode?.toString() || '1';
-    
+
     // Check specific exit code mapping
     let flowControl = hook.exitCodeMap[exitCode];
-    
+
     // Fall back to 'default' if specified
     if (!flowControl && hook.exitCodeMap['default']) {
       flowControl = hook.exitCodeMap['default'];
     }
-    
+
     // Final fallback based on standard convention
     if (!flowControl) {
       if (result.exitCode === 0) {
@@ -71,7 +71,7 @@ export class ResultMapper {
       flowControl,
       message,
       rawOutput: result.stdout || result.stderr || '',
-      jsonOutput: undefined
+      jsonOutput: undefined,
     };
   }
 
@@ -91,12 +91,12 @@ export class ResultMapper {
     let message: string | undefined;
     let diagnostics: DiagnosticReport | undefined;
     let jsonOutput: any = undefined;
-    
+
     if (result.stdout) {
       try {
         const parsed = JSON.parse(result.stdout);
         jsonOutput = parsed;
-        
+
         // Check for Claude's JSON output format
         if (parsed.decision === 'block' || parsed.decision === 'blocking-error') {
           flowControl = 'blocking-error';
@@ -105,17 +105,17 @@ export class ResultMapper {
           flowControl = 'non-blocking-error';
           message = parsed.reason || parsed.message;
         }
-        
+
         // Check for continue: false (stops Claude entirely)
         if (parsed.continue === false) {
           flowControl = 'blocking-error';
           message = parsed.stopReason || 'Hook requested stop';
         }
-        
+
         // Check if it's a DiagnosticReport
         if (this.isDiagnosticReport(parsed)) {
           diagnostics = parsed;
-          
+
           // Override flow control based on report
           if (parsed.controlFlow?.decision === 'block') {
             flowControl = 'blocking-error';
@@ -143,7 +143,7 @@ export class ResultMapper {
       message: message || undefined,
       diagnostics,
       rawOutput: result.stdout || result.stderr || '',
-      jsonOutput
+      jsonOutput,
     };
   }
 
@@ -152,11 +152,11 @@ export class ResultMapper {
    */
   private isDiagnosticReport(obj: any): obj is DiagnosticReport {
     if (!obj || typeof obj !== 'object') return false;
-    
+
     // Check required fields
     if (typeof obj.success !== 'boolean') return false;
     if (!Array.isArray(obj.findings)) return false;
-    
+
     // Validate findings structure
     for (const finding of obj.findings) {
       if (!finding || typeof finding !== 'object') return false;
@@ -165,15 +165,17 @@ export class ResultMapper {
       if (typeof finding.message !== 'string') return false;
       if (finding.severity !== 'error' && finding.severity !== 'warning') return false;
     }
-    
+
     // Validate optional controlFlow
     if (obj.controlFlow !== undefined) {
       if (typeof obj.controlFlow !== 'object') return false;
-      if (obj.controlFlow.continue !== undefined && typeof obj.controlFlow.continue !== 'boolean') return false;
+      if (obj.controlFlow.continue !== undefined && typeof obj.controlFlow.continue !== 'boolean')
+        return false;
       if (typeof obj.controlFlow.reason !== 'string') return false;
-      if (obj.controlFlow.decision !== undefined && obj.controlFlow.decision !== 'block') return false;
+      if (obj.controlFlow.decision !== undefined && obj.controlFlow.decision !== 'block')
+        return false;
     }
-    
+
     return true;
   }
 }

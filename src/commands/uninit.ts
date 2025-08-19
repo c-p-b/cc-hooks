@@ -7,7 +7,8 @@ import { ClaudeEventName } from '../common/types';
 
 export class UninitCommand {
   private logger = getLogger();
-  
+  private cwd: string;
+
   private readonly CLAUDE_EVENTS: ClaudeEventName[] = [
     'PreToolUse',
     'PostToolUse',
@@ -16,14 +17,18 @@ export class UninitCommand {
     'Notification',
     'SubagentStop',
     'PreCompact',
-    'SessionStart'
+    'SessionStart',
   ];
+
+  constructor(cwd?: string) {
+    this.cwd = cwd || process.cwd();
+  }
 
   async execute(): Promise<void> {
     try {
       // Find settings.json
       const settingsPath = this.findSettingsFile();
-      
+
       if (!settingsPath) {
         console.log(chalk.yellow('⚠ No Claude settings.json found'));
         console.log(chalk.gray('cc-hooks is not initialized'));
@@ -32,7 +37,7 @@ export class UninitCommand {
 
       // Load settings
       const settings = this.loadSettings(settingsPath);
-      
+
       // Check if cc-hooks is initialized
       if (!this.isInitialized(settings)) {
         console.log(chalk.yellow('⚠ cc-hooks is not initialized'));
@@ -44,10 +49,10 @@ export class UninitCommand {
 
       // Remove orchestrator hooks
       const cleanedSettings = this.removeOrchestratorHooks(settings);
-      
+
       // Write cleaned settings
       await this.writeSettings(settingsPath, cleanedSettings);
-      
+
       // Remove cc-hooks.json
       const configPath = this.getConfigPath(settingsPath);
       if (fs.existsSync(configPath)) {
@@ -64,7 +69,6 @@ export class UninitCommand {
 
       console.log(chalk.green('✓ cc-hooks deactivated successfully'));
       console.log(chalk.gray('Run "cc-hooks init" to reactivate'));
-      
     } catch (error) {
       if (error instanceof CCHooksError) {
         throw error;
@@ -75,9 +79,9 @@ export class UninitCommand {
 
   private findSettingsFile(): string | null {
     const locations = [
-      path.join(process.cwd(), '.claude', 'settings.json'),
-      path.join(process.cwd(), 'settings.json'),
-      path.join(process.env.HOME || '', '.claude', 'settings.json')
+      path.join(this.cwd, '.claude', 'settings.json'),
+      path.join(this.cwd, 'settings.json'),
+      path.join(process.env.HOME || '', '.claude', 'settings.json'),
     ];
 
     for (const location of locations) {
@@ -112,7 +116,7 @@ export class UninitCommand {
 
   private isInitialized(settings: any): boolean {
     if (!settings.hooks) return false;
-    
+
     for (const event of this.CLAUDE_EVENTS) {
       const eventHooks = settings.hooks[event];
       if (Array.isArray(eventHooks)) {
@@ -127,7 +131,7 @@ export class UninitCommand {
         }
       }
     }
-    
+
     return false;
   }
 
@@ -139,18 +143,16 @@ export class UninitCommand {
       const eventHooks = settings.hooks[event];
       if (Array.isArray(eventHooks)) {
         // Filter out matchers that only contain cc-hooks
-        settings.hooks[event] = eventHooks.filter(matcher => {
+        settings.hooks[event] = eventHooks.filter((matcher) => {
           if (Array.isArray(matcher.hooks)) {
             // Remove cc-hooks from the hooks array
-            matcher.hooks = matcher.hooks.filter((hook: any) => 
-              hook.command !== 'cc-hooks run'
-            );
+            matcher.hooks = matcher.hooks.filter((hook: any) => hook.command !== 'cc-hooks run');
             // Keep the matcher only if it has other hooks
             return matcher.hooks.length > 0;
           }
           return true;
         });
-        
+
         // Remove the event entirely if no matchers left
         if (settings.hooks[event].length === 0) {
           delete settings.hooks[event];

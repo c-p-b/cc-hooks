@@ -1,7 +1,7 @@
-import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { runHookBinary } from '../helpers/run-binary';
 
 describe('RunCommand Integration Tests', () => {
   let tempDir: string;
@@ -15,56 +15,6 @@ describe('RunCommand Integration Tests', () => {
     // Clean up temp directory
     fs.rmSync(tempDir, { recursive: true, force: true });
   });
-  
-  // Helper to run cc-hooks with event data
-  function runHook(eventData: any, configPath?: string, cwd?: string): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-    return new Promise((resolve, reject) => {
-      const args = ['tsx', 'src/cli.ts', 'run'];
-      if (configPath) {
-        args.push('--config', configPath);
-      }
-      
-      const proc = spawn('npx', args, {
-        cwd: cwd || process.cwd(),
-      });
-      
-      let stdout = '';
-      let stderr = '';
-      let finished = false;
-      
-      // Set a timeout to prevent hanging
-      const timeout = setTimeout(() => {
-        if (!finished) {
-          proc.kill('SIGKILL');
-          reject(new Error('Process timed out after 4 seconds'));
-        }
-      }, 4000);
-      
-      proc.stdout.on('data', (data) => {
-        stdout += data.toString();
-      });
-      
-      proc.stderr.on('data', (data) => {
-        stderr += data.toString();
-      });
-      
-      proc.on('error', (err) => {
-        finished = true;
-        clearTimeout(timeout);
-        reject(err);
-      });
-      
-      proc.on('close', (exitCode) => {
-        finished = true;
-        clearTimeout(timeout);
-        resolve({ stdout, stderr, exitCode: exitCode || 0 });
-      });
-      
-      // Send event data to stdin
-      proc.stdin.write(JSON.stringify(eventData));
-      proc.stdin.end();
-    });
-  }
   
   describe('Event Matchers', () => {
     test('PreCompact matcher filters by trigger value', async () => {
@@ -96,26 +46,26 @@ describe('RunCommand Integration Tests', () => {
       fs.writeFileSync(configPath, JSON.stringify(config));
       
       // Test manual trigger
-      const manualResult = await runHook({
+      const manualResult = await runHookBinary({
         hook_event_name: 'PreCompact',
         session_id: 'test',
         transcript_path: '/tmp/test.jsonl',
         cwd: '.',
         trigger: 'manual'
-      }, configPath);
+      }, { configPath });
       
       expect(manualResult.stdout).toContain('MANUAL_TRIGGERED');
       expect(manualResult.stdout).not.toContain('AUTO_TRIGGERED');
       expect(manualResult.exitCode).toBe(0);
       
       // Test auto trigger
-      const autoResult = await runHook({
+      const autoResult = await runHookBinary({
         hook_event_name: 'PreCompact',
         session_id: 'test',
         transcript_path: '/tmp/test.jsonl',
         cwd: '.',
         trigger: 'auto'
-      }, configPath);
+      }, { configPath });
       
       expect(autoResult.stdout).toContain('AUTO_TRIGGERED');
       expect(autoResult.stdout).not.toContain('MANUAL_TRIGGERED');
@@ -150,13 +100,13 @@ describe('RunCommand Integration Tests', () => {
       fs.writeFileSync(configPath, JSON.stringify(config));
       
       // Test resume source
-      const resumeResult = await runHook({
+      const resumeResult = await runHookBinary({
         hook_event_name: 'SessionStart',
         session_id: 'test',
         transcript_path: '/tmp/test.jsonl',
         cwd: '.',
         source: 'resume'
-      }, configPath);
+      }, { configPath });
       
       expect(resumeResult.stdout).toContain('RESUME_SESSION');
       expect(resumeResult.stdout).not.toContain('STARTUP_SESSION');
@@ -182,25 +132,25 @@ describe('RunCommand Integration Tests', () => {
       fs.writeFileSync(configPath, JSON.stringify(config));
       
       // Test MCP tool
-      const result = await runHook({
+      const result = await runHookBinary({
         hook_event_name: 'PreToolUse',
         session_id: 'test',
         transcript_path: '/tmp/test.jsonl',
         cwd: '.',
         tool_name: 'mcp__github_search'
-      }, configPath);
+      }, { configPath });
       
       expect(result.stdout).toContain('MCP_TOOL_MATCHED');
       expect(result.exitCode).toBe(0);
       
       // Test non-MCP tool (should not match)
-      const nonMcpResult = await runHook({
+      const nonMcpResult = await runHookBinary({
         hook_event_name: 'PreToolUse',
         session_id: 'test',
         transcript_path: '/tmp/test.jsonl',
         cwd: '.',
         tool_name: 'WebSearch'
-      }, configPath);
+      }, { configPath });
       
       expect(nonMcpResult.stdout).not.toContain('MCP_TOOL_MATCHED');
       expect(nonMcpResult.exitCode).toBe(0);
@@ -225,13 +175,13 @@ describe('RunCommand Integration Tests', () => {
       const configPath = path.join(tempDir, 'config.json');
       fs.writeFileSync(configPath, JSON.stringify(config));
       
-      const result = await runHook({
+      const result = await runHookBinary({
         hook_event_name: 'Stop',
         session_id: 'test',
         transcript_path: '/tmp/test.jsonl',
         cwd: '.',
         stop_hook_active: true
-      }, configPath);
+      }, { configPath });
       
       expect(result.stderr).toContain('stop_hook_active is true');
       expect(result.stdout).not.toContain('SHOULD_NOT_RUN');
@@ -255,13 +205,13 @@ describe('RunCommand Integration Tests', () => {
       const configPath = path.join(tempDir, 'config.json');
       fs.writeFileSync(configPath, JSON.stringify(config));
       
-      const result = await runHook({
+      const result = await runHookBinary({
         hook_event_name: 'Stop',
         session_id: 'test',
         transcript_path: '/tmp/test.jsonl',
         cwd: '.',
         stop_hook_active: false
-      }, configPath);
+      }, { configPath });
       
       expect(result.stdout).toContain('STOP_HOOK_RAN');
       expect(result.exitCode).toBe(0);
@@ -285,13 +235,13 @@ describe('RunCommand Integration Tests', () => {
       const configPath = path.join(tempDir, 'config.json');
       fs.writeFileSync(configPath, JSON.stringify(config));
       
-      const result = await runHook({
+      const result = await runHookBinary({
         hook_event_name: 'UserPromptSubmit',
         session_id: 'test',
         transcript_path: '/tmp/test.jsonl',
         cwd: '.',
         prompt: 'test prompt'
-      }, configPath);
+      }, { configPath });
       
       const output = JSON.parse(result.stdout);
       expect(output.decision).toBe('continue');
@@ -315,12 +265,12 @@ describe('RunCommand Integration Tests', () => {
       const configPath = path.join(tempDir, 'config.json');
       fs.writeFileSync(configPath, JSON.stringify(config));
       
-      const result = await runHook({
+      const result = await runHookBinary({
         hook_event_name: 'Stop',
         session_id: 'test',
         transcript_path: '/tmp/test.jsonl',
         cwd: '.'
-      }, configPath);
+      }, { configPath });
       
       expect(result.stderr).toContain('Test block');
       expect(result.exitCode).toBe(2); // Blocking error
@@ -350,13 +300,13 @@ describe('RunCommand Integration Tests', () => {
       
       // Instead of changing directory, just pass the config path
       const configPath = path.join(claudeDir, 'cc-hooks.json');
-      const result = await runHook({
+      const result = await runHookBinary({
         hook_event_name: 'Notification',
         session_id: 'test',
         transcript_path: '/tmp/test.jsonl',
         cwd: tempDir,
         message: 'test'
-      }, configPath);
+      }, { configPath });
       
       expect(result.stdout).toContain('FOUND_CONFIG');
       expect(result.exitCode).toBe(0);
@@ -395,13 +345,13 @@ describe('RunCommand Integration Tests', () => {
       
       // Use the local config (it should be picked first)
       const localConfigPath = path.join(claudeDir, 'cc-hooks-local.json');
-      const result = await runHook({
+      const result = await runHookBinary({
         hook_event_name: 'Notification',
         session_id: 'test',
         transcript_path: '/tmp/test.jsonl',
         cwd: tempDir,
         message: 'test'
-      }, localConfigPath);
+      }, { configPath: localConfigPath });
       
       expect(result.stdout).toContain('LOCAL_CONFIG');
       expect(result.stdout).not.toContain('PROJECT_CONFIG');
@@ -416,7 +366,7 @@ describe('RunCommand Integration Tests', () => {
           {
             name: 'quick-hook',
             outputFormat: 'text',
-            command: ['sh', '-c', 'sleep 0.1 && echo "COMPLETED"'],
+            command: ['sh', '-c', 'sleep 0.05 && echo "COMPLETED"'],
             events: ['Notification'],
             timeout: 1, // 1 second timeout
             exitCodeMap: { '0': 'success' },
@@ -428,13 +378,13 @@ describe('RunCommand Integration Tests', () => {
       const configPath = path.join(tempDir, 'config.json');
       fs.writeFileSync(configPath, JSON.stringify(config));
       
-      const result = await runHook({
+      const result = await runHookBinary({
         hook_event_name: 'Notification',
         session_id: 'test',
         transcript_path: '/tmp/test.jsonl',
         cwd: '.',
         message: 'test'
-      }, configPath);
+      }, { configPath });
       
       expect(result.stdout).toContain('COMPLETED');
       expect(result.exitCode).toBe(0);
@@ -446,9 +396,9 @@ describe('RunCommand Integration Tests', () => {
           {
             name: 'slow-hook',
             outputFormat: 'text',
-            command: ['sh', '-c', 'sleep 2 && echo "SHOULD_NOT_APPEAR"'],
+            command: ['sh', '-c', 'sleep 0.6 && echo "SHOULD_NOT_APPEAR"'],
             events: ['Notification'],
-            timeout: 0.5, // 0.5 second timeout
+            timeout: 0.1, // 0.1 second timeout
             exitCodeMap: { '0': 'success' },
             message: 'Slow hook'
           }
@@ -458,13 +408,13 @@ describe('RunCommand Integration Tests', () => {
       const configPath = path.join(tempDir, 'config.json');
       fs.writeFileSync(configPath, JSON.stringify(config));
       
-      const result = await runHook({
+      const result = await runHookBinary({
         hook_event_name: 'Notification',
         session_id: 'test',
         transcript_path: '/tmp/test.jsonl',
         cwd: '.',
         message: 'test'
-      }, configPath);
+      }, { configPath });
       
       expect(result.stdout).not.toContain('SHOULD_NOT_APPEAR');
       // Timeout results in non-blocking error

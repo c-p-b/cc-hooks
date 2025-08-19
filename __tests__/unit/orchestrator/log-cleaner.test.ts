@@ -24,15 +24,20 @@ describe('LogCleaner', () => {
   
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.clearAllTimers();
+    jest.useRealTimers();
     (os.homedir as jest.Mock).mockReturnValue(mockHomeDir);
   });
 
   afterEach(() => {
+    jest.clearAllTimers();
     jest.restoreAllMocks();
   });
 
   describe('cleanupIfNeeded', () => {
     it('should create logs directory if it does not exist', async () => {
+      jest.useFakeTimers();
+      
       const statMock = fs.stat as jest.Mock;
       const mkdirMock = fs.mkdir as jest.Mock;
       const writeFileMock = fs.writeFile as jest.Mock;
@@ -44,16 +49,20 @@ describe('LogCleaner', () => {
       
       LogCleaner.cleanupIfNeeded('test-session');
       
-      // Wait for setTimeout and async operations
-      await new Promise(resolve => setTimeout(resolve, 10));
+      // Wait for async operations
+      await jest.runAllTimersAsync();
       
       expect(mkdirMock).toHaveBeenCalledWith(
         mockLogsDir,
         { recursive: true }
       );
+      
+      jest.useRealTimers();
     });
 
     it('should not cleanup if lock was acquired recently', async () => {
+      jest.useFakeTimers();
+      
       const statMock = fs.stat as jest.Mock;
       const unlinkMock = fs.unlink as jest.Mock;
       const mkdirMock = fs.mkdir as jest.Mock;
@@ -68,15 +77,18 @@ describe('LogCleaner', () => {
       
       LogCleaner.cleanupIfNeeded('test-session');
       
-      // Wait for async operations to complete
-      await new Promise(resolve => setImmediate(resolve));
-      await new Promise(resolve => setImmediate(resolve));
+      // Wait for the async tryCleanup to complete
+      await jest.runAllTimersAsync();
       
       // Should not attempt to remove lock or perform cleanup
       expect(unlinkMock).not.toHaveBeenCalled();
+      
+      jest.useRealTimers();
     });
 
     it('should remove stale lock and acquire new one', async () => {
+      jest.useFakeTimers();
+      
       const statMock = fs.stat as jest.Mock;
       const unlinkMock = fs.unlink as jest.Mock;
       const writeFileMock = fs.writeFile as jest.Mock;
@@ -94,7 +106,7 @@ describe('LogCleaner', () => {
       
       LogCleaner.cleanupIfNeeded('test-session');
       
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await jest.runAllTimersAsync();
       
       expect(unlinkMock).toHaveBeenCalledWith(
         path.join(mockLogsDir, '.cleanup.lock')
@@ -105,9 +117,13 @@ describe('LogCleaner', () => {
         expect.stringContaining('test-session'),
         { flag: 'wx' }
       );
+      
+      jest.useRealTimers();
     });
 
     it('should not cleanup if another process has the lock', async () => {
+      jest.useFakeTimers();
+      
       const statMock = fs.stat as jest.Mock;
       const writeFileMock = fs.writeFile as jest.Mock;
       const readdirMock = fs.readdir as jest.Mock;
@@ -120,15 +136,19 @@ describe('LogCleaner', () => {
       
       LogCleaner.cleanupIfNeeded('test-session');
       
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await jest.runAllTimersAsync();
       
       // Should not perform cleanup
       expect(readdirMock).not.toHaveBeenCalled();
+      
+      jest.useRealTimers();
     });
   });
 
   describe('performCleanup', () => {
     it('should delete files older than 7 days', async () => {
+      jest.useFakeTimers();
+      
       const readdirMock = fs.readdir as jest.Mock;
       const statMock = fs.stat as jest.Mock;
       const unlinkMock = fs.unlink as jest.Mock;
@@ -162,16 +182,20 @@ describe('LogCleaner', () => {
       LogCleaner.cleanupIfNeeded('test-session');
       
       // Wait for cleanup to complete
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await jest.runAllTimersAsync();
       
       // Should only delete the old file
       expect(unlinkMock).toHaveBeenCalledTimes(2); // Once for lock removal, once for old file
       expect(unlinkMock).toHaveBeenCalledWith(
         path.join(mockSessionsDir, 'session-old.jsonl')
       );
+      
+      jest.useRealTimers();
     });
 
     it('should delete files when total size exceeds 500MB', async () => {
+      jest.useFakeTimers();
+      
       const readdirMock = fs.readdir as jest.Mock;
       const statMock = fs.stat as jest.Mock;
       const unlinkMock = fs.unlink as jest.Mock;
@@ -206,15 +230,19 @@ describe('LogCleaner', () => {
       
       LogCleaner.cleanupIfNeeded('test-session');
       
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await jest.runAllTimersAsync();
       
       // Should delete the oldest file to get under 500MB
       expect(unlinkMock).toHaveBeenCalledWith(
         path.join(mockSessionsDir, 'session-1.jsonl')
       );
+      
+      jest.useRealTimers();
     });
 
     it('should handle cleanup errors gracefully', async () => {
+      jest.useFakeTimers();
+      
       const readdirMock = fs.readdir as jest.Mock;
       const statMock = fs.stat as jest.Mock;
       const unlinkMock = fs.unlink as jest.Mock;
@@ -232,12 +260,14 @@ describe('LogCleaner', () => {
         LogCleaner.cleanupIfNeeded('test-session');
       }).not.toThrow();
       
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await jest.runAllTimersAsync();
       
       // Lock should still be removed (best effort)
       expect(unlinkMock).toHaveBeenCalledWith(
         path.join(mockLogsDir, '.cleanup.lock')
       );
+      
+      jest.useRealTimers();
     });
   });
 

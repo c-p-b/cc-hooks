@@ -10,20 +10,23 @@ import { ConfigLoader } from '../orchestrator/config-loader';
 export class UninstallCommand {
   private logger = getLogger();
   private configLoader = new ConfigLoader();
+  private cwd: string;
+
+  constructor(cwd?: string) {
+    this.cwd = cwd || process.cwd();
+  }
 
   async execute(hookName?: string): Promise<void> {
     try {
       // Find config file
       const configPath = this.findConfigFile();
       if (!configPath) {
-        throw new CCHooksError(
-          'cc-hooks is not initialized. Run "cc-hooks init" first.'
-        );
+        throw new CCHooksError('cc-hooks is not initialized. Run "cc-hooks init" first.');
       }
 
       // Load config
       const config = this.configLoader.load(configPath);
-      
+
       // Check if any hooks exist
       if (config.hooks.length === 0) {
         console.log(chalk.yellow('No hooks to uninstall'));
@@ -32,7 +35,7 @@ export class UninstallCommand {
 
       // Determine which hook to uninstall
       let targetHook: string;
-      
+
       if (hookName) {
         // Use provided name
         targetHook = hookName;
@@ -47,7 +50,7 @@ export class UninstallCommand {
       }
 
       // Find and remove the hook
-      const hookIndex = config.hooks.findIndex(h => h.name === targetHook);
+      const hookIndex = config.hooks.findIndex((h) => h.name === targetHook);
       if (hookIndex === -1) {
         throw new CCHooksError(`Hook '${targetHook}' not found`);
       }
@@ -56,17 +59,16 @@ export class UninstallCommand {
       if (!removedHook) {
         throw new CCHooksError(`Unable to find hook at index ${hookIndex}`);
       }
-      
+
       config.hooks.splice(hookIndex, 1);
 
       // Save updated config
       await this.saveConfig(configPath, config);
-      
+
       console.log(chalk.green(`✓ Uninstalled hook: ${removedHook.name}`));
       if (removedHook.description) {
         console.log(chalk.gray(`  ${removedHook.description}`));
       }
-      
     } catch (error) {
       if (error instanceof CCHooksError) {
         throw error;
@@ -91,13 +93,13 @@ export class UninstallCommand {
     // Create readline interface
     const rl = readline.createInterface({
       input: process.stdin,
-      output: process.stdout
+      output: process.stdout,
     });
 
     return new Promise((resolve) => {
       rl.question(chalk.gray('Enter number (or q to quit): '), (answer) => {
         rl.close();
-        
+
         if (answer.toLowerCase() === 'q') {
           resolve(null);
           return;
@@ -118,10 +120,10 @@ export class UninstallCommand {
 
   private findConfigFile(): string | null {
     const locations = [
-      path.join(process.cwd(), '.claude', 'cc-hooks-local.json'),
-      path.join(process.cwd(), '.claude', 'cc-hooks.json'),
-      path.join(process.cwd(), 'cc-hooks.json'),
-      path.join(process.env.HOME || '', '.claude', 'cc-hooks.json')
+      path.join(this.cwd, '.claude', 'cc-hooks-local.json'),
+      path.join(this.cwd, '.claude', 'cc-hooks.json'),
+      path.join(this.cwd, 'cc-hooks.json'),
+      path.join(process.env.HOME || '', '.claude', 'cc-hooks.json'),
     ];
 
     for (const location of locations) {

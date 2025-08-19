@@ -20,10 +20,10 @@ export class Logger {
    */
   logEvent(event: ClaudeHookEvent): void {
     if (this.level === 'off') return;
-    
+
     const message = `Event received: ${event.hook_event_name}`;
     this.logToFile('INFO', message);
-    
+
     if (this.level === 'verbose') {
       this.logToFile('DEBUG', `Full event data: ${JSON.stringify(event, null, 2)}`);
     }
@@ -34,10 +34,10 @@ export class Logger {
    */
   logHookStart(hook: HookDefinition): void {
     if (this.level === 'off') return;
-    
+
     const message = `Executing hook: ${hook.name}`;
     this.logToFile('INFO', message);
-    
+
     if (this.level === 'verbose') {
       this.logToFile('DEBUG', `Hook config: ${JSON.stringify(hook, null, 2)}`);
     }
@@ -46,15 +46,18 @@ export class Logger {
   /**
    * Log hook execution result
    */
-  logHookResult(hook: HookDefinition, result: { success: boolean; exitCode?: number; error?: Error }): void {
+  logHookResult(
+    hook: HookDefinition,
+    result: { success: boolean; exitCode?: number; error?: Error },
+  ): void {
     if (this.level === 'off') return;
-    
+
     if (result.success) {
       this.logToFile('INFO', `Hook completed: ${hook.name}`);
     } else {
       const exitInfo = result.exitCode !== undefined ? ` (exit: ${result.exitCode})` : '';
       this.logToFile('ERROR', `Hook failed: ${hook.name}${exitInfo}`);
-      
+
       if (result.error && this.level === 'verbose') {
         this.logToFile('DEBUG', `Error details: ${result.error.stack || result.error.message}`);
       }
@@ -67,7 +70,7 @@ export class Logger {
   logError(error: Error): void {
     if (this.level === 'off' || this.level === 'errors' || this.level === 'verbose') {
       this.logToFile('ERROR', error.message);
-      
+
       if (this.level === 'verbose' && error.stack) {
         this.logToFile('DEBUG', `Stack trace: ${error.stack}`);
       }
@@ -113,7 +116,7 @@ export class Logger {
    */
   console(level: 'info' | 'warn' | 'error' | 'debug', message: string): void {
     const formatted = this.formatConsoleMessage(level, message);
-    
+
     switch (level) {
       case 'error':
         console.error(formatted);
@@ -159,7 +162,7 @@ export class Logger {
   private logToFile(level: string, message: string): void {
     const timestamp = new Date().toISOString();
     const logLine = `[${timestamp}] [${level}] ${message}\n`;
-    
+
     try {
       // Ensure log directory exists
       const logDir = path.dirname(this.logPath);
@@ -189,7 +192,7 @@ export class Logger {
       if (stats.size > MAX_LOG_SIZE_BYTES) {
         const rotatedPath = `${this.logPath}.${Date.now()}`;
         fs.renameSync(this.logPath, rotatedPath);
-        
+
         // Keep only the last 3 rotated logs
         this.cleanOldLogs();
       }
@@ -206,18 +209,18 @@ export class Logger {
       const logDir = path.dirname(this.logPath);
       const logBase = path.basename(this.logPath);
       const files = fs.readdirSync(logDir);
-      
+
       const rotatedLogs = files
-        .filter(f => f.startsWith(`${logBase}.`))
-        .map(f => ({
+        .filter((f) => f.startsWith(`${logBase}.`))
+        .map((f) => ({
           name: f,
           path: path.join(logDir, f),
-          time: parseInt(f.split('.').pop() || '0', 10)
+          time: parseInt(f.split('.').pop() || '0', 10),
         }))
         .sort((a, b) => b.time - a.time);
-      
+
       // Keep only the 3 most recent
-      rotatedLogs.slice(3).forEach(log => {
+      rotatedLogs.slice(3).forEach((log) => {
         fs.unlinkSync(log.path);
       });
     } catch {

@@ -14,6 +14,17 @@ module.exports = [
         sourceType: 'module',
         project: './tsconfig.json',
       },
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        Buffer: 'readonly',
+        global: 'readonly',
+        require: 'readonly',
+        module: 'readonly',
+        exports: 'readonly',
+      },
     },
     plugins: {
       '@typescript-eslint': typescript,
@@ -23,7 +34,9 @@ module.exports = [
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-require-imports': 'off', // Need require for sync operations
       'no-console': 'off',
+      'no-undef': 'off', // TypeScript handles this
     },
   },
 ];

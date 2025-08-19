@@ -6,11 +6,11 @@ import { LogEntry } from '../common/types';
 import { CCHooksError } from '../common/errors';
 
 export interface LogsOptions {
-  follow?: boolean;       // -f, tail logs
-  session?: boolean;      // Show current session only
-  failed?: boolean;       // Show failed hooks only
-  limit?: number;         // Number of entries to show
-  verbose?: boolean;      // Show full output
+  follow?: boolean; // -f, tail logs
+  session?: boolean; // Show current session only
+  failed?: boolean; // Show failed hooks only
+  limit?: number; // Number of entries to show
+  verbose?: boolean; // Show full output
 }
 
 export class LogsCommand {
@@ -40,7 +40,7 @@ export class LogsCommand {
 
   private async showLogs(hookName: string | undefined, options: LogsOptions): Promise<void> {
     const entries = await this.readLogEntries(hookName, options);
-    
+
     if (entries.length === 0) {
       console.log(chalk.yellow('No matching log entries found.'));
       return;
@@ -52,7 +52,7 @@ export class LogsCommand {
 
   private async tailLogs(hookName: string | undefined, options: LogsOptions): Promise<void> {
     console.log(chalk.cyan('Tailing logs... (Ctrl+C to stop)'));
-    
+
     // Get the most recent log file
     const logFiles = await this.getLogFiles();
     if (logFiles.length === 0) {
@@ -99,7 +99,11 @@ export class LogsCommand {
     this.watchFile(filePath, hookName || undefined, options);
   }
 
-  private watchFile(filePath: string, hookName: string | undefined, options: LogsOptions = {}): void {
+  private watchFile(
+    filePath: string,
+    hookName: string | undefined,
+    options: LogsOptions = {},
+  ): void {
     let position = fs.statSync(filePath).size;
 
     fs.watchFile(filePath, { interval: 100 }, () => {
@@ -135,20 +139,18 @@ export class LogsCommand {
 
   private async readLogEntries(
     hookName: string | undefined,
-    options: LogsOptions
+    options: LogsOptions,
   ): Promise<LogEntry[]> {
     const entries: LogEntry[] = [];
     const logFiles = await this.getLogFiles();
-    
+
     // If session filter, only read current session file
-    const filesToRead = options.session 
-      ? logFiles.slice(-1) 
-      : logFiles;
+    const filesToRead = options.session ? logFiles.slice(-1) : logFiles;
 
     for (const file of filesToRead) {
       const filePath = path.join(this.logDir, file);
       const content = fs.readFileSync(filePath, 'utf-8');
-      const lines = content.split('\n').filter(line => line.trim());
+      const lines = content.split('\n').filter((line) => line.trim());
 
       for (const line of lines) {
         try {
@@ -164,7 +166,7 @@ export class LogsCommand {
 
     // Sort by timestamp and apply limit
     entries.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
-    
+
     const limit = options.limit || 20;
     return entries.slice(-limit);
   }
@@ -172,7 +174,7 @@ export class LogsCommand {
   private matchesFilter(
     entry: LogEntry,
     hookName: string | undefined,
-    options: LogsOptions = {}
+    options: LogsOptions = {},
   ): boolean {
     // Filter by hook name
     if (hookName && entry.hook !== hookName) {
@@ -192,8 +194,9 @@ export class LogsCommand {
       return [];
     }
 
-    const files = fs.readdirSync(this.logDir)
-      .filter(f => f.startsWith('session-') && f.endsWith('.jsonl'))
+    const files = fs
+      .readdirSync(this.logDir)
+      .filter((f) => f.startsWith('session-') && f.endsWith('.jsonl'))
       .sort();
 
     return files;
@@ -209,17 +212,17 @@ export class LogsCommand {
     const timestamp = new Date(entry.timestamp).toLocaleTimeString();
     const statusColor = this.getStatusColor(entry.flow_control);
     const status = chalk[statusColor](entry.flow_control.toUpperCase());
-    
+
     const hookName = chalk.cyan(entry.hook);
     const event = chalk.gray(entry.event);
     const duration = chalk.gray(`${entry.duration}ms`);
 
     let line = `[${timestamp}] ${status} ${hookName} (${event}) ${duration}`;
-    
+
     if (entry.timed_out) {
       line += chalk.yellow(' [TIMEOUT]');
     }
-    
+
     if (entry.truncated) {
       line += chalk.yellow(' [TRUNCATED]');
     }

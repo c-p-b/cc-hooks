@@ -36,14 +36,18 @@ export class ConfigWriter {
    */
   addHook(config: HooksConfigFile, hook: HookDefinition): HooksConfigFile {
     // Check for name conflict
-    const existingHook = config.hooks.find(h => h.name === hook.name);
+    const existingHook = config.hooks.find((h) => h.name === hook.name);
     if (existingHook) {
-      throw new FileOperationError('write', 'config', new Error(`Hook with name '${hook.name}' already exists`));
+      throw new FileOperationError(
+        'write',
+        'config',
+        new Error(`Hook with name '${hook.name}' already exists`),
+      );
     }
 
     return {
       ...config,
-      hooks: [...config.hooks, hook]
+      hooks: [...config.hooks, hook],
     };
   }
 
@@ -52,15 +56,19 @@ export class ConfigWriter {
    * Returns a new config object (immutable).
    */
   removeHook(config: HooksConfigFile, name: string): HooksConfigFile {
-    const filteredHooks = config.hooks.filter(h => h.name !== name);
-    
+    const filteredHooks = config.hooks.filter((h) => h.name !== name);
+
     if (filteredHooks.length === config.hooks.length) {
-      throw new FileOperationError('delete', 'config', new Error(`Hook with name '${name}' not found`));
+      throw new FileOperationError(
+        'delete',
+        'config',
+        new Error(`Hook with name '${name}' not found`),
+      );
     }
 
     return {
       ...config,
-      hooks: filteredHooks
+      hooks: filteredHooks,
     };
   }
 
@@ -69,17 +77,25 @@ export class ConfigWriter {
    * Returns a new config object (immutable).
    */
   updateHook(config: HooksConfigFile, name: string, updatedHook: HookDefinition): HooksConfigFile {
-    const hookIndex = config.hooks.findIndex(h => h.name === name);
-    
+    const hookIndex = config.hooks.findIndex((h) => h.name === name);
+
     if (hookIndex === -1) {
-      throw new FileOperationError('write', 'config', new Error(`Hook with name '${name}' not found`));
+      throw new FileOperationError(
+        'write',
+        'config',
+        new Error(`Hook with name '${name}' not found`),
+      );
     }
 
     // If renaming, check for conflicts
     if (updatedHook.name !== name) {
-      const conflictingHook = config.hooks.find(h => h.name === updatedHook.name);
+      const conflictingHook = config.hooks.find((h) => h.name === updatedHook.name);
       if (conflictingHook) {
-        throw new FileOperationError('write', 'config', new Error(`Hook with name '${updatedHook.name}' already exists`));
+        throw new FileOperationError(
+          'write',
+          'config',
+          new Error(`Hook with name '${updatedHook.name}' already exists`),
+        );
       }
     }
 
@@ -88,7 +104,7 @@ export class ConfigWriter {
 
     return {
       ...config,
-      hooks: newHooks
+      hooks: newHooks,
     };
   }
 
@@ -96,7 +112,7 @@ export class ConfigWriter {
    * Check if a hook with the given name exists.
    */
   hookExists(config: HooksConfigFile, name: string): boolean {
-    return config.hooks.some(h => h.name === name);
+    return config.hooks.some((h) => h.name === name);
   }
 
   /**
@@ -105,9 +121,9 @@ export class ConfigWriter {
   createEmptyConfig(): HooksConfigFile {
     return {
       logging: {
-        level: 'errors'
+        level: 'errors',
       },
-      hooks: []
+      hooks: [],
     };
   }
 }
