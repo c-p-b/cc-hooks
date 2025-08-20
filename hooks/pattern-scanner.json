@@ -1,0 +1,18 @@
+{
+  "name": "pattern-scanner",
+  "description": "Scans latest git changes for TODO, mock, compatibility and placeholder patterns",
+  "command": [
+    "sh",
+    "-c",
+    "git diff --cached --name-only 2>/dev/null | head -20 | while read -r file; do [ -f \"$file\" ] && git diff --cached \"$file\" 2>/dev/null | grep -E '^\\+' | grep -v '^\\+\\+\\+' | grep -iE '(TODO|FIXME|HACK|XXX|TEMP|mock|stub|fake|dummy|placeholder|compat|legacy|deprecated|fallback|polyfill|shim|not.implemented|unimplemented|noop|no-?op|workaround|kludge)' | head -10; done | if grep .; then echo && echo '⚠️  Found patterns that may need attention in staged changes'; exit 0; else exit 0; fi"
+  ],
+  "events": ["PostToolUse"],
+  "matcher": ".*\\.(js|ts|jsx|tsx|py|go|java|c|cpp|rs|rb|php|swift|kt|scala|sh|yaml|json)$",
+  "outputFormat": "text",
+  "exitCodeMap": {
+    "0": "success",
+    "default": "success"
+  },
+  "message": "Pattern scan complete",
+  "timeout": 10
+}

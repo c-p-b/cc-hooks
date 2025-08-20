@@ -1,0 +1,17 @@
+{
+  "name": "session-init-md",
+  "description": "Load the contents of init.md at session start (if present)",
+  "command": [
+    "sh",
+    "-c",
+    "f=\\\"$CLAUDE_PROJECT_DIR/init.md\\\"; if [ -f \\\"$f\\\" ]; then cat \\\"$f\\\"; fi"
+  ],
+  "events": ["SessionStart"],
+  "outputFormat": "text",
+  "exitCodeMap": {
+    "0": "success",
+    "default": "success"
+  },
+  "message": "init.md loaded",
+  "timeout": 5
+}
