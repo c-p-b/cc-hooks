@@ -1,0 +1,15 @@
+{
+  "name": "prettier-format",
+  "description": "Auto-format code with Prettier",
+  "command": ["npx", "prettier", "--write", ".", "--cache"],
+  "events": ["PostToolUse"],
+  "matcher": "Write|Edit|MultiEdit",
+  "outputFormat": "text",
+  "priority": 20,
+  "exitCodeMap": {
+    "0": "success",
+    "default": "success"
+  },
+  "message": "Code formatted",
+  "timeout": 20000
+}

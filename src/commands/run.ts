@@ -8,9 +8,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 export interface RunOptions {
-  event?: string;
-  mockData?: string;
-  config?: string;
+  config?: string;  // Custom config path
   debug?: boolean;
 }
 
@@ -37,8 +35,8 @@ export class RunCommand {
     let hooks: HookDefinition[];
 
     try {
-      // Get event data from stdin or mock
-      event = await this.getEventData(options);
+      // Always read from stdin
+      event = await this.readStdin();
       this.lastEvent = event;
 
       if (process.env.CC_HOOKS_DEBUG) {
@@ -118,28 +116,6 @@ export class RunCommand {
     process.exit(exitCode);
   }
 
-  private async getEventData(options: RunOptions): Promise<ClaudeHookEvent> {
-    if (options.mockData) {
-      // Testing mode: read from file
-      const mockPath = path.resolve(options.mockData);
-      if (!fs.existsSync(mockPath)) {
-        throw new CCHooksError(`Mock data file not found: ${mockPath}`);
-      }
-      const content = fs.readFileSync(mockPath, 'utf-8');
-      return JSON.parse(content);
-    } else if (options.event) {
-      // Testing mode: create minimal event
-      return {
-        hook_event_name: options.event as any,
-        session_id: 'manual-test',
-        transcript_path: '',
-        cwd: process.cwd(),
-      };
-    } else {
-      // Production mode: read from stdin
-      return await this.readStdin();
-    }
-  }
 
   private async readStdin(): Promise<ClaudeHookEvent> {
     return new Promise((resolve, reject) => {

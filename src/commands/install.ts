@@ -28,35 +28,65 @@ export class InstallCommand {
         throw new CCHooksError('cc-hooks is not initialized. Run "cc-hooks init" first.');
       }
 
-      // Resolve the hook source
-      const hookDef = await this.resolveHookSource(source);
+      // Resolve the hook source (can be single hook or array of hooks)
+      const result = await this.resolveHookSource(source);
+      const hooksToInstall = Array.isArray(result) ? result : [result];
 
       // Load existing config
       const config = this.configLoader.load(configPath);
 
-      // Check for conflicts
-      const existingHook = config.hooks.find((h) => h.name === hookDef.name);
-      if (existingHook && !options.force) {
-        throw new CCHooksError(`Hook '${hookDef.name}' already exists. Use --force to overwrite.`);
-      }
+      let installedCount = 0;
+      let replacedCount = 0;
 
-      // Add or replace the hook
-      if (existingHook) {
-        const index = config.hooks.findIndex((h) => h.name === hookDef.name);
-        config.hooks[index] = hookDef;
-        console.log(chalk.yellow(`⚠ Replaced existing hook: ${hookDef.name}`));
-      } else {
-        config.hooks.push(hookDef);
-        console.log(chalk.green(`✓ Installed hook: ${hookDef.name}`));
+      // Install each hook
+      for (const hookDef of hooksToInstall) {
+        // Check for conflicts
+        const existingHook = config.hooks.find((h) => h.name === hookDef.name);
+        if (existingHook && !options.force) {
+          if (hooksToInstall.length === 1) {
+            // Single hook install - throw error as before
+            throw new CCHooksError(`Hook '${hookDef.name}' already exists. Use --force to overwrite.`);
+          }
+          // Bundle install - silently overwrite
+          // When installing a bundle, users expect the full bundle
+        }
+
+        // Add or replace the hook
+        if (existingHook) {
+          const index = config.hooks.findIndex((h) => h.name === hookDef.name);
+          config.hooks[index] = hookDef;
+          replacedCount++;
+        } else {
+          config.hooks.push(hookDef);
+          installedCount++;
+        }
       }
 
       // Save updated config
       await this.saveConfig(configPath, config);
 
-      // Show hook details
-      console.log(chalk.gray(`  Description: ${hookDef.description || 'N/A'}`));
-      console.log(chalk.gray(`  Events: ${hookDef.events.join(', ')}`));
-      console.log(chalk.gray(`  Command: ${hookDef.command.join(' ')}`));
+      // Show results
+      if (hooksToInstall.length === 1) {
+        // Single hook - detailed output as before
+        const hookDef = hooksToInstall[0];
+        if (hookDef) {
+          if (replacedCount > 0) {
+            console.log(chalk.yellow(`⚠ Replaced existing hook: ${hookDef.name}`));
+          } else {
+            console.log(chalk.green(`✓ Installed hook: ${hookDef.name}`));
+          }
+          console.log(chalk.gray(`  Description: ${hookDef.description || 'N/A'}`));
+          console.log(chalk.gray(`  Events: ${hookDef.events.join(', ')}`));
+          console.log(chalk.gray(`  Command: ${hookDef.command.join(' ')}`));
+        }
+      } else {
+        // Bundle - summary output
+        console.log(chalk.green(`✓ Installed ${installedCount} hooks from ${source}`));
+        if (replacedCount > 0) {
+          console.log(chalk.yellow(`⚠ Replaced ${replacedCount} existing hooks`));
+        }
+        console.log(chalk.gray(`\nRun 'cc-hooks show' to see all installed hooks`));
+      }
     } catch (error) {
       if (error instanceof CCHooksError) {
         throw error;
@@ -65,7 +95,7 @@ export class InstallCommand {
     }
   }
 
-  private async resolveHookSource(source: string): Promise<HookDefinition> {
+  private async resolveHookSource(source: string): Promise<HookDefinition | HookDefinition[]> {
     // 1. Check if it's a built-in template
     const builtInHook = await this.loadBuiltInTemplate(source);
     if (builtInHook) {
@@ -86,19 +116,55 @@ export class InstallCommand {
       `Unable to resolve hook source: ${source}\n` +
         `Try one of:\n` +
         `  - Built-in template name (e.g., typescript-lint)\n` +
+        `  - Built-in bundle name (e.g., typescript)\n` +
         `  - Local path (e.g., ./my-hook.json)\n` +
         `  - Git URL (e.g., https://github.com/user/repo)`,
     );
   }
 
-  private async loadBuiltInTemplate(name: string): Promise<HookDefinition | null> {
+  private async loadBuiltInTemplate(name: string): Promise<HookDefinition | HookDefinition[] | null> {
     try {
-      // Look for template in package's templates directory
-      let templatePath = path.join(__dirname, '..', '..', 'templates', `${name}.json`);
+      const templatesDir = path.join(__dirname, '..', '..', 'templates');
+      
+      // First check if it's a directory (bundle)
+      const bundlePath = path.join(templatesDir, name);
+      if (fs.existsSync(bundlePath) && fs.statSync(bundlePath).isDirectory()) {
+        // Load all .json files from the directory
+        const hookFiles = fs.readdirSync(bundlePath)
+          .filter(f => f.endsWith('.json'))
+          .sort(); // Sort for consistent ordering
+        
+        if (hookFiles.length === 0) {
+          return null;
+        }
+        
+        const hooks: HookDefinition[] = [];
+        for (const file of hookFiles) {
+          try {
+            const content = fs.readFileSync(path.join(bundlePath, file), 'utf-8');
+            const hookDef = JSON.parse(content);
+            
+            // Prefix hook name with bundle name to avoid collisions
+            if (!hookDef.name.startsWith(`${name}:`)) {
+              hookDef.name = `${name}:${hookDef.name}`;
+            }
+            
+            hooks.push(this.validateHookDefinition(hookDef));
+          } catch (error) {
+            // Fail the entire bundle installation if any hook is invalid
+            throw new CCHooksError(`Failed to load hook from ${file} in bundle ${name}: ${error}`);
+          }
+        }
+        
+        return hooks;
+      }
+      
+      // Otherwise try as single template file
+      let templatePath = path.join(templatesDir, `${name}.json`);
 
       if (!fs.existsSync(templatePath)) {
         // Try without .json extension if name already has it
-        const altPath = path.join(__dirname, '..', '..', 'templates', name);
+        const altPath = path.join(templatesDir, name);
         if (fs.existsSync(altPath)) {
           templatePath = altPath;
         } else {

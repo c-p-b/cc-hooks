@@ -1,0 +1,16 @@
+{
+  "name": "eslint-final",
+  "description": "Final ESLint check before stop",
+  "command": ["npx", "eslint", "--max-warnings", "0", "."],
+  "events": ["Stop"],
+  "outputFormat": "text",
+  "priority": 30,
+  "exitCodeMap": {
+    "0": "success",
+    "1": "blocking-error",
+    "default": "blocking-error"
+  },
+  "message": "ESLint errors must be fixed",
+  "fixInstructions": "Fix all ESLint errors before continuing",
+  "timeout": 60000
+}

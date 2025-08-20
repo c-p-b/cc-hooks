@@ -40,6 +40,24 @@ export class ShowCommand {
         return;
       }
 
+      // Group hooks by bundle
+      const bundles = new Map<string, typeof config.hooks>();
+      const standaloneHooks: typeof config.hooks = [];
+      
+      for (const hook of config.hooks) {
+        const colonIndex = hook.name.indexOf(':');
+        if (colonIndex > 0) {
+          // This looks like a bundled hook (has prefix)
+          const bundleName = hook.name.substring(0, colonIndex);
+          if (!bundles.has(bundleName)) {
+            bundles.set(bundleName, []);
+          }
+          bundles.get(bundleName)!.push(hook);
+        } else {
+          standaloneHooks.push(hook);
+        }
+      }
+
       // Display hooks
       console.log(
         chalk.bold(
@@ -48,52 +66,33 @@ export class ShowCommand {
       );
       console.log();
 
-      for (const hook of config.hooks) {
-        // Hook name and description
-        console.log(chalk.cyan(`• ${hook.name}`));
-        if (hook.description) {
-          console.log(chalk.gray(`  ${hook.description}`));
+      // Show bundled hooks first
+      for (const [bundleName, bundleHooks] of bundles) {
+        console.log(chalk.bold.green(`📦 ${bundleName} bundle`) + chalk.gray(` (${bundleHooks.length} hooks)`));
+        for (const hook of bundleHooks) {
+          const shortName = hook.name.substring(bundleName.length + 1); // Remove "bundle:" prefix
+          console.log(chalk.cyan(`  • ${shortName}`));
+          if (hook.description) {
+            console.log(chalk.gray(`    ${hook.description}`));
+          }
+          this.showHookDetails(hook, options, '    ');
         }
-
-        // Basic info
-        console.log(chalk.gray(`  Events: ${hook.events.join(', ')}`));
-        console.log(chalk.gray(`  Type: ${hook.outputFormat}`));
-
-        if (options.verbose) {
-          // Command
-          console.log(chalk.gray(`  Command: ${hook.command.join(' ')}`));
-
-          // Priority
-          if (hook.priority !== undefined) {
-            console.log(chalk.gray(`  Priority: ${hook.priority}`));
-          }
-
-          // Timeout
-          if (hook.timeout !== undefined) {
-            console.log(chalk.gray(`  Timeout: ${hook.timeout}ms`));
-          }
-
-          // Matcher (for tool hooks)
-          if (hook.matcher !== undefined) {
-            console.log(chalk.gray(`  Matcher: ${hook.matcher}`));
-          }
-
-          // Text hook specific
-          if (hook.outputFormat === 'text') {
-            console.log(chalk.gray(`  Message: ${hook.message}`));
-            if (hook.exitCodeMap) {
-              const codes = Object.entries(hook.exitCodeMap)
-                .map(([code, action]) => `${code}=${action}`)
-                .join(', ');
-              console.log(chalk.gray(`  Exit codes: ${codes}`));
-            }
-            if (hook.fixInstructions) {
-              console.log(chalk.gray(`  Fix: ${hook.fixInstructions}`));
-            }
-          }
-        }
-
         console.log();
+      }
+
+      // Show standalone hooks
+      if (standaloneHooks.length > 0) {
+        if (bundles.size > 0) {
+          console.log(chalk.bold('Standalone hooks:'));
+        }
+        for (const hook of standaloneHooks) {
+          console.log(chalk.cyan(`• ${hook.name}`));
+          if (hook.description) {
+            console.log(chalk.gray(`  ${hook.description}`));
+          }
+          this.showHookDetails(hook, options, '  ');
+          console.log();
+        }
       }
 
       // Show logging config if present
@@ -115,6 +114,46 @@ export class ShowCommand {
         throw error;
       }
       throw new CCHooksError(`Failed to show hooks: ${error}`);
+    }
+  }
+
+  private showHookDetails(hook: any, options: ShowOptions, indent: string): void {
+    // Basic info
+    console.log(chalk.gray(`${indent}Events: ${hook.events.join(', ')}`));
+    console.log(chalk.gray(`${indent}Type: ${hook.outputFormat}`));
+
+    if (options.verbose) {
+      // Command
+      console.log(chalk.gray(`${indent}Command: ${hook.command.join(' ')}`));
+
+      // Priority
+      if (hook.priority !== undefined) {
+        console.log(chalk.gray(`${indent}Priority: ${hook.priority}`));
+      }
+
+      // Timeout
+      if (hook.timeout !== undefined) {
+        console.log(chalk.gray(`${indent}Timeout: ${hook.timeout}ms`));
+      }
+
+      // Matcher (for tool hooks)
+      if (hook.matcher !== undefined) {
+        console.log(chalk.gray(`${indent}Matcher: ${hook.matcher}`));
+      }
+
+      // Text hook specific
+      if (hook.outputFormat === 'text') {
+        console.log(chalk.gray(`${indent}Message: ${hook.message}`));
+        if (hook.exitCodeMap) {
+          const codes = Object.entries(hook.exitCodeMap)
+            .map(([code, action]) => `${code}=${action}`)
+            .join(', ');
+          console.log(chalk.gray(`${indent}Exit codes: ${codes}`));
+        }
+        if (hook.fixInstructions) {
+          console.log(chalk.gray(`${indent}Fix: ${hook.fixInstructions}`));
+        }
+      }
     }
   }
 

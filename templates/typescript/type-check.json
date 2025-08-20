@@ -1,0 +1,18 @@
+{
+  "name": "type-check",
+  "description": "Validate TypeScript types",
+  "command": ["npx", "tsc", "--noEmit", "--incremental"],
+  "events": ["PostToolUse"],
+  "matcher": "Write|Edit|MultiEdit",
+  "outputFormat": "text",
+  "priority": 30,
+  "exitCodeMap": {
+    "0": "success",
+    "1": "non-blocking-error",
+    "2": "blocking-error",
+    "default": "non-blocking-error"
+  },
+  "message": "TypeScript type errors detected",
+  "fixInstructions": "Fix the type errors before continuing",
+  "timeout": 45000
+}

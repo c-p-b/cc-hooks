@@ -112,6 +112,20 @@ program
     }
   });
 
+// Templates command
+program
+  .command('templates')
+  .description('List available hook templates and bundles')
+  .action(async () => {
+    try {
+      const { TemplatesCommand } = await import('./commands/templates');
+      const command = new TemplatesCommand();
+      await command.execute();
+    } catch (error) {
+      handleError(error);
+    }
+  });
+
 // Migrate command
 program
   .command('migrate')
@@ -152,13 +166,40 @@ program
     }
   });
 
+// Init test command
+program
+  .command('init-test')
+  .description('Initialize test event files for hook testing')
+  .action(async () => {
+    try {
+      const { InitTestCommand } = await import('./commands/init-test');
+      const command = new InitTestCommand(process.cwd());
+      await command.execute();
+    } catch (error) {
+      handleError(error);
+    }
+  });
+
+// Test command
+program
+  .command('test [eventFile]')
+  .description('Test hooks with event files')
+  .option('-v, --verbose', 'show detailed output')
+  .action(async (eventFile, options) => {
+    try {
+      const { TestCommand } = await import('./commands/test');
+      const command = new TestCommand(process.cwd());
+      await command.execute(eventFile, options);
+    } catch (error) {
+      handleError(error);
+    }
+  });
+
 // Run command
 program
   .command('run')
-  .description('Execute hooks for testing or when called by Claude Code')
-  .option('-c, --config <path>', 'path to custom cc-hooks.json file (overrides auto-discovery)')
-  .option('-e, --event <event>', 'event name for testing')
-  .option('-m, --mock-data <file>', 'mock event data file for testing')
+  .description('Execute hooks (reads event from stdin)')
+  .option('-c, --config <path>', 'path to custom cc-hooks.json file')
   .action(async (options) => {
     try {
       const { RunCommand } = await import('./commands/run');

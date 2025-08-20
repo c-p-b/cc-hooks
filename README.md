@@ -14,14 +14,21 @@ npm install -g cc-hooks
 # Initialize cc-hooks in your project
 cc-hooks init
 
-# Install a hook from official templates
-cc-hooks install typescript-lint
+# Install hooks - two options:
+# Option 1: Install a complete bundle (multiple related hooks)
+cc-hooks install typescript        # Installs eslint, prettier, type-check, tests, etc.
+
+# Option 2: Install individual hooks
+cc-hooks install typescript-lint   # Just the linter
 
 # Show all configured hooks
 cc-hooks show
 
-# Run cc-hooks (called by Claude Code automatically)
-cc-hooks run
+# Test your hooks locally
+cc-hooks init-test                # Generate test event files
+cc-hooks test                     # Test all hooks
+cc-hooks test Stop.json           # Test specific event
+cat Stop.json | cc-hooks run      # Manual testing (what Claude does)
 ```
 
 ## Development

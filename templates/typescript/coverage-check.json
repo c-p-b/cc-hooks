@@ -1,0 +1,16 @@
+{
+  "name": "coverage-check",
+  "description": "Ensure 80% test coverage",
+  "command": ["sh", "-c", "npm test -- --coverage --coverageThreshold='{\"global\":{\"branches\":80,\"functions\":80,\"lines\":80,\"statements\":80}}'"],
+  "events": ["Stop"],
+  "outputFormat": "text",
+  "priority": 20,
+  "exitCodeMap": {
+    "0": "success",
+    "1": "blocking-error",
+    "default": "blocking-error"
+  },
+  "message": "Code coverage below 80% threshold",
+  "fixInstructions": "Add tests to meet the 80% coverage requirement",
+  "timeout": 120000
+}
