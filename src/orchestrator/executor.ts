@@ -201,7 +201,7 @@ export class HookExecutor {
       const [exitCode, signal] = await new Promise<[number | null, NodeJS.Signals | null]>(
         (resolve) => {
           let resolved = false;
-          
+
           // Primary: 'close' event ensures stdio streams are flushed
           child.once('close', (code, sig) => {
             if (!resolved) {
@@ -209,7 +209,7 @@ export class HookExecutor {
               resolve([code, sig]);
             }
           });
-          
+
           // Fallback: 'exit' event with delay for stdio flush
           // This handles edge cases where 'close' doesn't fire (killed processes, Node bugs)
           child.once('exit', (code, sig) => {
