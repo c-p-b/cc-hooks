@@ -1,0 +1,16 @@
+{
+  "name": "prettier-final",
+  "description": "Final formatting check before stop",
+  "command": ["npx", "prettier", "--check", "."],
+  "events": ["Stop"],
+  "outputFormat": "text",
+  "priority": 40,
+  "exitCodeMap": {
+    "0": "success",
+    "1": "blocking-error",
+    "default": "blocking-error"
+  },
+  "message": "Code formatting issues must be fixed",
+  "fixInstructions": "Run 'npm run format' to fix formatting",
+  "timeout": 30000
+}

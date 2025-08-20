@@ -1,0 +1,16 @@
+{
+  "name": "unit-tests",
+  "description": "Run unit tests before stop",
+  "command": ["npm", "test", "--", "--passWithNoTests", "--bail"],
+  "events": ["Stop"],
+  "outputFormat": "text",
+  "priority": 10,
+  "exitCodeMap": {
+    "0": "success",
+    "1": "blocking-error",
+    "default": "blocking-error"
+  },
+  "message": "Unit tests failed",
+  "fixInstructions": "Fix failing tests before continuing",
+  "timeout": 120000
+}

@@ -1,0 +1,17 @@
+{
+  "name": "eslint-autofix",
+  "description": "Auto-fix ESLint issues on file edits",
+  "command": ["npx", "eslint", "--fix", "--cache", "--max-warnings", "0", "."],
+  "events": ["PostToolUse"],
+  "matcher": "Write|Edit|MultiEdit",
+  "outputFormat": "text",
+  "priority": 10,
+  "exitCodeMap": {
+    "0": "success",
+    "1": "non-blocking-error",
+    "default": "non-blocking-error"
+  },
+  "message": "ESLint found issues",
+  "fixInstructions": "Review the reported issues and fix manually if auto-fix didn't resolve them",
+  "timeout": 30000
+}
