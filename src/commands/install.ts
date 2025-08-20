@@ -1,6 +1,5 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { execSync } from 'child_process';
 import chalk from 'chalk';
 import { CCHooksError } from '../common/errors';
 import { getLogger } from '../common/logger';
@@ -105,13 +104,15 @@ export class InstallCommand {
     }
 
     // 2. Check if it's a local path
-    if (source.startsWith('./') || source.startsWith('/') || source.startsWith('../')) {
+    // Handle absolute paths, relative paths with ./, ../, or plain filenames
+    if (
+      source.startsWith('/') ||
+      source.startsWith('./') ||
+      source.startsWith('../') ||
+      source.endsWith('.json') ||
+      fs.existsSync(source)
+    ) {
       return await this.loadLocalHook(source);
-    }
-
-    // 3. Check if it's a git URL
-    if (this.isGitUrl(source)) {
-      return await this.loadGitHook(source);
     }
 
     throw new CCHooksError(
@@ -119,8 +120,7 @@ export class InstallCommand {
         `Try one of:\n` +
         `  - Built-in template name (e.g., typescript-lint)\n` +
         `  - Built-in bundle name (e.g., typescript)\n` +
-        `  - Local path (e.g., ./my-hook.json)\n` +
-        `  - Git URL (e.g., https://github.com/user/repo)`,
+        `  - Local path (e.g., ./my-hook.json or ./hooks-directory)`,
     );
   }
 
@@ -188,7 +188,7 @@ export class InstallCommand {
     }
   }
 
-  private async loadLocalHook(hookPath: string): Promise<HookDefinition> {
+  private async loadLocalHook(hookPath: string): Promise<HookDefinition | HookDefinition[]> {
     const resolvedPath = path.resolve(hookPath);
 
     if (!fs.existsSync(resolvedPath)) {
@@ -198,56 +198,42 @@ export class InstallCommand {
     const stat = fs.statSync(resolvedPath);
 
     if (stat.isDirectory()) {
-      // Look for hook.json in the directory
-      const hookFile = path.join(resolvedPath, 'hook.json');
-      if (!fs.existsSync(hookFile)) {
-        throw new CCHooksError(`No hook.json found in directory: ${resolvedPath}`);
+      // Load all .json files from the directory (like built-in bundles)
+      const hookFiles = fs
+        .readdirSync(resolvedPath)
+        .filter((f) => f.endsWith('.json'))
+        .sort(); // Sort for consistent ordering
+
+      if (hookFiles.length === 0) {
+        throw new CCHooksError(`No .json hook files found in directory: ${resolvedPath}`);
       }
-      return this.loadHookFile(hookFile);
+
+      const hooks: HookDefinition[] = [];
+      const bundleName = path.basename(resolvedPath);
+
+      for (const file of hookFiles) {
+        try {
+          const content = fs.readFileSync(path.join(resolvedPath, file), 'utf-8');
+          const hookDef = JSON.parse(content);
+
+          // Prefix hook name with directory name to avoid collisions (like built-in bundles)
+          if (!hookDef.name.startsWith(`${bundleName}:`)) {
+            hookDef.name = `${bundleName}:${hookDef.name}`;
+          }
+
+          hooks.push(this.validateHookDefinition(hookDef));
+        } catch (error) {
+          // Fail the entire bundle installation if any hook is invalid
+          throw new CCHooksError(
+            `Failed to load hook from ${file} in directory ${resolvedPath}: ${error}`,
+          );
+        }
+      }
+
+      return hooks;
     } else {
       // Load the file directly
       return this.loadHookFile(resolvedPath);
-    }
-  }
-
-  private async loadGitHook(gitUrl: string): Promise<HookDefinition> {
-    console.log(chalk.gray(`Cloning from ${gitUrl}...`));
-
-    // Create temp directory
-    const tempDir = path.join(process.env.TMPDIR || '/tmp', `cc-hooks-${Date.now()}`);
-
-    try {
-      // Clone the repository
-      execSync(`git clone --depth 1 --quiet "${gitUrl}" "${tempDir}"`, {
-        stdio: 'pipe',
-      });
-
-      // Look for hook.json or hooks/ directory
-      const hookFile = path.join(tempDir, 'hook.json');
-      const hooksDir = path.join(tempDir, 'hooks');
-
-      if (fs.existsSync(hookFile)) {
-        // Single hook repository
-        return this.loadHookFile(hookFile);
-      } else if (fs.existsSync(hooksDir)) {
-        // Multiple hooks repository - list available hooks
-        const hooks = fs
-          .readdirSync(hooksDir)
-          .filter((f) => f.endsWith('.json'))
-          .map((f) => f.replace('.json', ''));
-
-        throw new CCHooksError(
-          `Multiple hooks found in repository. Install specific hook:\n` +
-            hooks.map((h) => `  cc-hooks install ${gitUrl}#${h}`).join('\n'),
-        );
-      } else {
-        throw new CCHooksError(`No hook.json or hooks/ directory found in repository: ${gitUrl}`);
-      }
-    } finally {
-      // Clean up temp directory
-      if (fs.existsSync(tempDir)) {
-        execSync(`rm -rf "${tempDir}"`, { stdio: 'pipe' });
-      }
     }
   }
 
@@ -276,7 +262,7 @@ export class InstallCommand {
       throw new CCHooksError('Hook must have outputFormat (text or structured)');
     }
 
-    // For text hooks, ensure required fields
+    // For text hooks, ensure required fields and validate exitCodeMap values
     if (hook.outputFormat === 'text') {
       if (!hook.exitCodeMap) {
         throw new CCHooksError('Text hooks must have exitCodeMap');
@@ -284,19 +270,32 @@ export class InstallCommand {
       if (!hook.message) {
         throw new CCHooksError('Text hooks must have a message');
       }
+
+      // Validate exitCodeMap values
+      const validFlowControls = ['success', 'non-blocking-error', 'blocking-error'];
+      for (const [code, action] of Object.entries(hook.exitCodeMap)) {
+        if (!validFlowControls.includes(action as string)) {
+          throw new CCHooksError(
+            `Invalid flow control '${action}' for exit code '${code}'. Must be one of: ${validFlowControls.join(', ')}`,
+          );
+        }
+      }
+    }
+
+    // Use ConfigLoader to do full validation
+    try {
+      // Create a temporary config with just this hook to validate it
+      const tempConfig = { hooks: [hook], logging: { level: 'off' as const } };
+      this.configLoader.validate(tempConfig, 'validation');
+    } catch (error) {
+      // Convert validation errors to CCHooksError
+      if (error instanceof Error) {
+        throw new CCHooksError(`Invalid hook configuration: ${error.message}`);
+      }
+      throw error;
     }
 
     return hook as HookDefinition;
-  }
-
-  private isGitUrl(source: string): boolean {
-    return (
-      source.startsWith('https://') ||
-      source.startsWith('git://') ||
-      source.startsWith('git@') ||
-      source.includes('github.com') ||
-      source.includes('gitlab.com')
-    );
   }
 
   private findConfigFile(): string | null {

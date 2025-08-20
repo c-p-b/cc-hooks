@@ -574,7 +574,7 @@ describe('RunCommand Integration Tests', () => {
             outputFormat: 'text',
             command: ['sh', '-c', 'sleep 0.05 && echo "COMPLETED"'],
             events: ['Notification'],
-            timeout: 1, // 1 second timeout
+            timeout: 1, // 1 second timeout (will be converted to 1000ms)
             exitCodeMap: { '0': 'success' },
             message: 'Quick hook',
           },
@@ -607,7 +607,7 @@ describe('RunCommand Integration Tests', () => {
             outputFormat: 'text',
             command: ['sh', '-c', 'sleep 0.6 && echo "SHOULD_NOT_APPEAR"'],
             events: ['Notification'],
-            timeout: 0.1, // 0.1 second timeout
+            timeout: 0.1, // 0.1 second timeout (will be converted to 100ms)
             exitCodeMap: { '0': 'success' },
             message: 'Slow hook',
           },
