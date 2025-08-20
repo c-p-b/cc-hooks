@@ -197,11 +197,30 @@ export class HookExecutor {
         }, 2000);
       }, timeout);
 
-      // Wait for process to exit
+      // Wait for process to complete (preferring 'close' for stdio safety)
       const [exitCode, signal] = await new Promise<[number | null, NodeJS.Signals | null]>(
         (resolve) => {
-          child.on('exit', (code, sig) => {
-            resolve([code, sig]);
+          let resolved = false;
+
+          // Primary: 'close' event ensures stdio streams are flushed
+          child.once('close', (code, sig) => {
+            if (!resolved) {
+              resolved = true;
+              resolve([code, sig]);
+            }
+          });
+
+          // Fallback: 'exit' event with delay for stdio flush
+          // This handles edge cases where 'close' doesn't fire (killed processes, Node bugs)
+          child.once('exit', (code, sig) => {
+            // Always set up fallback, not just for timeouts
+            // Some processes (especially killed ones) might not emit 'close'
+            setTimeout(() => {
+              if (!resolved) {
+                resolved = true;
+                resolve([code, sig]);
+              }
+            }, 100); // 100ms is enough for stdio to flush in most cases
           });
         },
       );

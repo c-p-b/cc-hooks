@@ -55,8 +55,8 @@ export class ProcessManager {
       startTime: Date.now(),
     });
 
-    // Clean up when process exits
-    child.once('exit', () => {
+    // Clean up when process closes (ensures stdio streams are closed)
+    child.once('close', () => {
       this.processes.delete(id);
       this.logger.log(`Process ${id} exited`);
     });
