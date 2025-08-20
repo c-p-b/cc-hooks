@@ -1,6 +1,6 @@
 {
   "name": "cc-hooks",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A universal, stable, and user-friendly hook management system for Claude Code",
   "main": "dist/index.js",
   "bin": {
