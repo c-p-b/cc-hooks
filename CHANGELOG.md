@@ -1,0 +1,9 @@
+# Changelog
+
+## [0.1.1] - 2025-08-20
+
+### Bug Fixes
+- race condition for execution (#2)
+
+All notable changes to this project will be documented in this file.
+
