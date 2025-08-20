@@ -52,9 +52,9 @@ class MockChildProcess extends EventEmitter {
 
   kill(signal?: string) {
     this.killed = true;
-    // Simulate process exit after kill
+    // Simulate process close after kill (close event ensures stdio streams are closed)
     setTimeout(() => {
-      this.emit('exit', signal === 'SIGKILL' ? 137 : 1, signal);
+      this.emit('close', signal === 'SIGKILL' ? 137 : 1, signal);
     }, 0);
     return true;
   }
@@ -106,7 +106,7 @@ describe('HookExecutor', () => {
         mockProcess.stdout.push('Success output');
         mockProcess.stdout.push(null);
         mockProcess.stderr.push(null);
-        mockProcess.emit('exit', 0, null);
+        mockProcess.emit('close', 0, null);
       }, 10);
       
       const result = await executor.execute(testHook, { event: testEvent });
@@ -213,7 +213,7 @@ describe('HookExecutor', () => {
       mockSpawn.mockReturnValue(mockProcess);
       
       setTimeout(() => {
-        mockProcess.emit('exit', 0, null);
+        mockProcess.emit('close', 0, null);
       }, 10);
       
       await executor.execute(testHook, { event: testEvent });
@@ -230,7 +230,7 @@ describe('HookExecutor', () => {
       appendFileMock.mockRejectedValue(new Error('Disk full'));
       
       setTimeout(() => {
-        mockProcess.emit('exit', 0, null);
+        mockProcess.emit('close', 0, null);
       }, 10);
       
       // Should not throw even if logging fails
@@ -256,8 +256,8 @@ describe('HookExecutor', () => {
       const hook2 = { ...testHook, name: 'test-hook-2' };
       
       setTimeout(() => {
-        mockProcess1.emit('exit', 0, null);
-        mockProcess2.emit('exit', 1, null);
+        mockProcess1.emit('close', 0, null);
+        mockProcess2.emit('close', 1, null);
       }, 10);
       
       const results = await executor.executeAll([testHook, hook2], { event: testEvent });

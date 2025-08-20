@@ -197,10 +197,10 @@ export class HookExecutor {
         }, 2000);
       }, timeout);
 
-      // Wait for process to exit
+      // Wait for process to close (ensures stdio streams are closed)
       const [exitCode, signal] = await new Promise<[number | null, NodeJS.Signals | null]>(
         (resolve) => {
-          child.on('exit', (code, sig) => {
+          child.on('close', (code, sig) => {
             resolve([code, sig]);
           });
         },
