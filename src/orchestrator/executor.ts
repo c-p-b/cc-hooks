@@ -200,8 +200,29 @@ export class HookExecutor {
       // Wait for process to close (ensures stdio streams are closed)
       const [exitCode, signal] = await new Promise<[number | null, NodeJS.Signals | null]>(
         (resolve) => {
-          child.on('close', (code, sig) => {
-            resolve([code, sig]);
+          // For killed processes, 'exit' might fire but 'close' might not
+          // Use 'once' to ensure we only resolve once
+          let resolved = false;
+          
+          child.once('close', (code, sig) => {
+            if (!resolved) {
+              resolved = true;
+              resolve([code, sig]);
+            }
+          });
+          
+          // Safety fallback for killed processes where 'close' might not fire
+          child.once('exit', (code, sig) => {
+            // Only use exit as fallback if we're timing out
+            if (timedOut) {
+              // Give streams 100ms to flush, then resolve if close hasn't fired
+              setTimeout(() => {
+                if (!resolved) {
+                  resolved = true;
+                  resolve([code, sig]);
+                }
+              }, 100);
+            }
           });
         },
       );
