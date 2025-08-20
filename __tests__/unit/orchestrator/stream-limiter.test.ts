@@ -5,10 +5,14 @@ describe('StreamLimiter', () => {
   it('should pass through data under the limit', (done) => {
     const maxBytes = 100;
     let limitExceeded = false;
-    
-    const limiter = new StreamLimiter(maxBytes, () => {
-      limitExceeded = true;
-    }, 'test');
+
+    const limiter = new StreamLimiter(
+      maxBytes,
+      () => {
+        limitExceeded = true;
+      },
+      'test',
+    );
 
     const input = Buffer.from('Hello, World!');
     const output: Buffer[] = [];
@@ -33,10 +37,14 @@ describe('StreamLimiter', () => {
     const maxBytes = 10;
     let limitExceeded = false;
     let callbackCalled = false;
-    
-    const limiter = new StreamLimiter(maxBytes, () => {
-      callbackCalled = true;
-    }, 'test');
+
+    const limiter = new StreamLimiter(
+      maxBytes,
+      () => {
+        callbackCalled = true;
+      },
+      'test',
+    );
 
     limiter.on('limit-exceeded', (info) => {
       limitExceeded = true;
@@ -47,12 +55,12 @@ describe('StreamLimiter', () => {
 
     // Write more than the limit
     limiter.write(Buffer.from('This is a long string that exceeds the limit'));
-    
+
     // Check immediately after write
     expect(limitExceeded).toBe(true);
     expect(callbackCalled).toBe(true);
     expect(limiter.isLimitExceeded()).toBe(true);
-    
+
     limiter.end();
     done();
   });
@@ -60,7 +68,7 @@ describe('StreamLimiter', () => {
   it('should stop processing after limit is exceeded', (done) => {
     const maxBytes = 5;
     const output: Buffer[] = [];
-    
+
     const limiter = new StreamLimiter(maxBytes, () => {}, 'test');
 
     limiter.on('data', (chunk: Buffer) => {
@@ -85,10 +93,14 @@ describe('StreamLimiter', () => {
     const maxBytes = 20;
     let limitExceeded = false;
     const output: Buffer[] = [];
-    
-    const limiter = new StreamLimiter(maxBytes, () => {
-      limitExceeded = true;
-    }, 'test');
+
+    const limiter = new StreamLimiter(
+      maxBytes,
+      () => {
+        limitExceeded = true;
+      },
+      'test',
+    );
 
     limiter.on('data', (chunk: Buffer) => {
       output.push(chunk);
@@ -112,16 +124,20 @@ describe('StreamLimiter', () => {
   it('should work with pipe', (done) => {
     const maxBytes = 15;
     let limitExceeded = false;
-    
-    const limiter = new StreamLimiter(maxBytes, () => {
-      limitExceeded = true;
-    }, 'test');
+
+    const limiter = new StreamLimiter(
+      maxBytes,
+      () => {
+        limitExceeded = true;
+      },
+      'test',
+    );
 
     const input = new Readable({
       read() {
         this.push('Hello, World! This is a test.');
         this.push(null);
-      }
+      },
     });
 
     const output: string[] = [];
@@ -129,7 +145,7 @@ describe('StreamLimiter', () => {
       write(chunk, _encoding, callback) {
         output.push(chunk.toString());
         callback();
-      }
+      },
     });
 
     writer.on('finish', () => {

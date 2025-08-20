@@ -43,7 +43,7 @@ export class ShowCommand {
       // Group hooks by bundle
       const bundles = new Map<string, typeof config.hooks>();
       const standaloneHooks: typeof config.hooks = [];
-      
+
       for (const hook of config.hooks) {
         const colonIndex = hook.name.indexOf(':');
         if (colonIndex > 0) {
@@ -68,7 +68,10 @@ export class ShowCommand {
 
       // Show bundled hooks first
       for (const [bundleName, bundleHooks] of bundles) {
-        console.log(chalk.bold.green(`📦 ${bundleName} bundle`) + chalk.gray(` (${bundleHooks.length} hooks)`));
+        console.log(
+          chalk.bold.green(`📦 ${bundleName} bundle`) +
+            chalk.gray(` (${bundleHooks.length} hooks)`),
+        );
         for (const hook of bundleHooks) {
           const shortName = hook.name.substring(bundleName.length + 1); // Remove "bundle:" prefix
           console.log(chalk.cyan(`  • ${shortName}`));

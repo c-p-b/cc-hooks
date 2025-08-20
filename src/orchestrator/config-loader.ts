@@ -103,6 +103,43 @@ export class ConfigLoader {
   }
 
   /**
+   * Merge multiple configuration files, with later configs taking precedence.
+   * Follows Claude's key-by-key replacement strategy for hooks.
+   */
+  merge(...configs: HooksConfigFile[]): HooksConfigFile {
+    const result: HooksConfigFile = {
+      hooks: [],
+    };
+
+    // Track hook names and their order of first appearance
+    const hookOrder: string[] = [];
+    const hooksByName = new Map<string, HookDefinition>();
+
+    // Process each config in order (later configs override earlier ones)
+    for (const config of configs) {
+      // Merge logging settings (complete replacement)
+      if (config.logging) {
+        result.logging = config.logging;
+      }
+
+      // Process hooks from current config
+      for (const hook of config.hooks) {
+        if (!hooksByName.has(hook.name)) {
+          // New hook - track its order
+          hookOrder.push(hook.name);
+        }
+        // Add or replace the hook
+        hooksByName.set(hook.name, hook);
+      }
+    }
+
+    // Build final hooks array preserving order of first appearance
+    result.hooks = hookOrder.map((name) => hooksByName.get(name)!);
+
+    return result;
+  }
+
+  /**
    * Get active hooks for a specific event, sorted by priority.
    * Applies appropriate matcher filtering based on event type.
    */

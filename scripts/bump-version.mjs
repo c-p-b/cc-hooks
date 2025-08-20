@@ -28,8 +28,9 @@ if (!parsed.type) {
 
 // Only certain types trigger releases
 const releaseTriggers = ['feat', 'fix'];
-const isBreaking = parsed.notes.some(note => note.title === 'BREAKING CHANGE') || 
-                   commitMsg.includes(`${parsed.type}!:`);
+const isBreaking =
+  parsed.notes.some((note) => note.title === 'BREAKING CHANGE') ||
+  commitMsg.includes(`${parsed.type}!:`);
 const shouldRelease = releaseTriggers.includes(parsed.type) || isBreaking;
 
 if (!shouldRelease) {
@@ -73,9 +74,13 @@ const changelogPath = path.join(__dirname, '..', 'CHANGELOG.md');
 const date = new Date().toISOString().split('T')[0];
 
 // Determine change category
-const changeType = isBreaking ? 'BREAKING CHANGES' :
-                   parsed.type === 'feat' ? 'Features' :
-                   parsed.type === 'fix' ? 'Bug Fixes' : 'Changes';
+const changeType = isBreaking
+  ? 'BREAKING CHANGES'
+  : parsed.type === 'feat'
+    ? 'Features'
+    : parsed.type === 'fix'
+      ? 'Bug Fixes'
+      : 'Changes';
 
 // Build changelog entry
 const scope = parsed.scope ? `**${parsed.scope}:** ` : '';
@@ -94,7 +99,9 @@ if (fs.existsSync(changelogPath)) {
 
 // Ensure proper header
 if (!changelog.startsWith('# Changelog')) {
-  changelog = '# Changelog\n\nAll notable changes to this project will be documented in this file.\n\n' + changelog;
+  changelog =
+    '# Changelog\n\nAll notable changes to this project will be documented in this file.\n\n' +
+    changelog;
 }
 
 // Insert new entry after the header

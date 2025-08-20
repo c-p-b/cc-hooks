@@ -22,7 +22,7 @@ describe('ConfigWriter', () => {
     it('should write config with pretty formatting', () => {
       const config: HooksConfigFile = {
         logging: {
-          level: 'verbose'
+          level: 'verbose',
         },
         hooks: [
           {
@@ -31,9 +31,9 @@ describe('ConfigWriter', () => {
             events: ['PostToolUse'],
             outputFormat: 'text',
             exitCodeMap: { '0': 'success' },
-            message: 'Test message'
-          }
-        ]
+            message: 'Test message',
+          },
+        ],
       };
 
       const configPath = path.join(tempDir, 'config.json');
@@ -43,7 +43,7 @@ describe('ConfigWriter', () => {
       expect(content).toContain('  "logging"');
       expect(content).toContain('    "level": "verbose"');
       expect(content.endsWith('\n')).toBe(true);
-      
+
       const parsed = JSON.parse(content);
       expect(parsed).toEqual(config);
     });
@@ -51,40 +51,44 @@ describe('ConfigWriter', () => {
     it('should create parent directories if needed', () => {
       const config: HooksConfigFile = { hooks: [] };
       const deepPath = path.join(tempDir, 'a', 'b', 'c', 'config.json');
-      
+
       writer.write(deepPath, config);
-      
+
       expect(existsSync(deepPath)).toBe(true);
     });
 
     it('should overwrite existing file', () => {
       const configPath = path.join(tempDir, 'config.json');
-      
-      const config1: HooksConfigFile = { 
-        hooks: [{
-          name: 'hook1',
-          command: ['ls'],
-          events: ['Stop'],
-          outputFormat: 'text',
-          exitCodeMap: { '0': 'success' },
-          message: 'First'
-        }]
+
+      const config1: HooksConfigFile = {
+        hooks: [
+          {
+            name: 'hook1',
+            command: ['ls'],
+            events: ['Stop'],
+            outputFormat: 'text',
+            exitCodeMap: { '0': 'success' },
+            message: 'First',
+          },
+        ],
       };
-      
-      const config2: HooksConfigFile = { 
-        hooks: [{
-          name: 'hook2',
-          command: ['pwd'],
-          events: ['Stop'],
-          outputFormat: 'text',
-          exitCodeMap: { '0': 'success' },
-          message: 'Second'
-        }]
+
+      const config2: HooksConfigFile = {
+        hooks: [
+          {
+            name: 'hook2',
+            command: ['pwd'],
+            events: ['Stop'],
+            outputFormat: 'text',
+            exitCodeMap: { '0': 'success' },
+            message: 'Second',
+          },
+        ],
       };
-      
+
       writer.write(configPath, config1);
       writer.write(configPath, config2);
-      
+
       const content = readFileSync(configPath, 'utf-8');
       const parsed = JSON.parse(content);
       expect(parsed.hooks[0].name).toBe('hook2');
@@ -95,24 +99,24 @@ describe('ConfigWriter', () => {
     it('should create directory if it does not exist', () => {
       const dirPath = path.join(tempDir, 'new-dir');
       expect(existsSync(dirPath)).toBe(false);
-      
+
       writer.ensureDirectoryExists(dirPath);
-      
+
       expect(existsSync(dirPath)).toBe(true);
     });
 
     it('should not error if directory already exists', () => {
       const dirPath = tempDir;
       expect(existsSync(dirPath)).toBe(true);
-      
+
       expect(() => writer.ensureDirectoryExists(dirPath)).not.toThrow();
     });
 
     it('should create nested directories', () => {
       const nestedPath = path.join(tempDir, 'a', 'b', 'c');
-      
+
       writer.ensureDirectoryExists(nestedPath);
-      
+
       expect(existsSync(nestedPath)).toBe(true);
     });
   });
@@ -126,9 +130,9 @@ describe('ConfigWriter', () => {
           events: ['Stop'],
           outputFormat: 'text',
           exitCodeMap: { '0': 'success' },
-          message: 'Existing hook'
-        }
-      ]
+          message: 'Existing hook',
+        },
+      ],
     };
 
     const newHook: TextHook = {
@@ -137,12 +141,12 @@ describe('ConfigWriter', () => {
       events: ['PostToolUse'],
       outputFormat: 'text',
       exitCodeMap: { '0': 'success' },
-      message: 'New hook'
+      message: 'New hook',
     };
 
     it('should add hook to config', () => {
       const updated = writer.addHook(baseConfig, newHook);
-      
+
       expect(updated.hooks).toHaveLength(2);
       expect(updated.hooks[1]?.name).toBe('new-hook');
       expect(baseConfig.hooks).toHaveLength(1);
@@ -150,16 +154,14 @@ describe('ConfigWriter', () => {
 
     it('should throw on duplicate name', () => {
       const duplicate = { ...newHook, name: 'existing' };
-      
-      expect(() => writer.addHook(baseConfig, duplicate))
-        .toThrow(FileOperationError);
-      expect(() => writer.addHook(baseConfig, duplicate))
-        .toThrow(/already exists/);
+
+      expect(() => writer.addHook(baseConfig, duplicate)).toThrow(FileOperationError);
+      expect(() => writer.addHook(baseConfig, duplicate)).toThrow(/already exists/);
     });
 
     it('should preserve immutability', () => {
       const updated = writer.addHook(baseConfig, newHook);
-      
+
       expect(updated).not.toBe(baseConfig);
       expect(updated.hooks).not.toBe(baseConfig.hooks);
     });
@@ -174,7 +176,7 @@ describe('ConfigWriter', () => {
           events: ['Stop'],
           outputFormat: 'text',
           exitCodeMap: { '0': 'success' },
-          message: 'First'
+          message: 'First',
         },
         {
           name: 'hook2',
@@ -182,24 +184,22 @@ describe('ConfigWriter', () => {
           events: ['Stop'],
           outputFormat: 'text',
           exitCodeMap: { '0': 'success' },
-          message: 'Second'
-        }
-      ]
+          message: 'Second',
+        },
+      ],
     };
 
     it('should remove hook by name', () => {
       const updated = writer.removeHook(config, 'hook1');
-      
+
       expect(updated.hooks).toHaveLength(1);
       expect(updated.hooks[0]?.name).toBe('hook2');
       expect(config.hooks).toHaveLength(2);
     });
 
     it('should throw if hook not found', () => {
-      expect(() => writer.removeHook(config, 'nonexistent'))
-        .toThrow(FileOperationError);
-      expect(() => writer.removeHook(config, 'nonexistent'))
-        .toThrow(/not found/);
+      expect(() => writer.removeHook(config, 'nonexistent')).toThrow(FileOperationError);
+      expect(() => writer.removeHook(config, 'nonexistent')).toThrow(/not found/);
     });
   });
 
@@ -212,7 +212,7 @@ describe('ConfigWriter', () => {
           events: ['Stop'],
           outputFormat: 'text',
           exitCodeMap: { '0': 'success' },
-          message: 'Original'
+          message: 'Original',
         },
         {
           name: 'other',
@@ -220,9 +220,9 @@ describe('ConfigWriter', () => {
           events: ['Stop'],
           outputFormat: 'text',
           exitCodeMap: { '0': 'success' },
-          message: 'Other'
-        }
-      ]
+          message: 'Other',
+        },
+      ],
     };
 
     it('should update hook in place', () => {
@@ -232,11 +232,11 @@ describe('ConfigWriter', () => {
         events: ['PostToolUse'],
         outputFormat: 'text',
         exitCodeMap: { '0': 'success', '1': 'non-blocking-error' },
-        message: 'Updated message'
+        message: 'Updated message',
       };
 
       const updated = writer.updateHook(config, 'original', updatedHook);
-      
+
       expect(updated.hooks[0]?.command).toEqual(['echo', 'updated']);
       expect(updated.hooks[0]?.events).toEqual(['PostToolUse']);
       expect((updated.hooks[0] as TextHook).message).toBe('Updated message');
@@ -249,11 +249,11 @@ describe('ConfigWriter', () => {
         events: ['Stop'],
         outputFormat: 'text',
         exitCodeMap: { '0': 'success' },
-        message: 'Renamed'
+        message: 'Renamed',
       };
 
       const updated = writer.updateHook(config, 'original', renamedHook);
-      
+
       expect(updated.hooks[0]?.name).toBe('renamed');
       expect(writer.hookExists(updated, 'original')).toBe(false);
       expect(writer.hookExists(updated, 'renamed')).toBe(true);
@@ -266,13 +266,15 @@ describe('ConfigWriter', () => {
         events: ['Stop'],
         outputFormat: 'text',
         exitCodeMap: { '0': 'success' },
-        message: 'Conflict'
+        message: 'Conflict',
       };
 
-      expect(() => writer.updateHook(config, 'original', conflictingHook))
-        .toThrow(FileOperationError);
-      expect(() => writer.updateHook(config, 'original', conflictingHook))
-        .toThrow(/already exists/);
+      expect(() => writer.updateHook(config, 'original', conflictingHook)).toThrow(
+        FileOperationError,
+      );
+      expect(() => writer.updateHook(config, 'original', conflictingHook)).toThrow(
+        /already exists/,
+      );
     });
 
     it('should throw if hook not found', () => {
@@ -282,13 +284,13 @@ describe('ConfigWriter', () => {
         events: ['Stop'],
         outputFormat: 'text',
         exitCodeMap: { '0': 'success' },
-        message: 'New'
+        message: 'New',
       };
 
-      expect(() => writer.updateHook(config, 'nonexistent', updatedHook))
-        .toThrow(FileOperationError);
-      expect(() => writer.updateHook(config, 'nonexistent', updatedHook))
-        .toThrow(/not found/);
+      expect(() => writer.updateHook(config, 'nonexistent', updatedHook)).toThrow(
+        FileOperationError,
+      );
+      expect(() => writer.updateHook(config, 'nonexistent', updatedHook)).toThrow(/not found/);
     });
   });
 
@@ -301,9 +303,9 @@ describe('ConfigWriter', () => {
           events: ['Stop'],
           outputFormat: 'text',
           exitCodeMap: { '0': 'success' },
-          message: 'Test'
-        }
-      ]
+          message: 'Test',
+        },
+      ],
     };
 
     it('should return true for existing hook', () => {
@@ -318,7 +320,7 @@ describe('ConfigWriter', () => {
   describe('createEmptyConfig', () => {
     it('should create config with default logging and empty hooks', () => {
       const config = writer.createEmptyConfig();
-      
+
       expect(config.logging?.level).toBe('errors');
       expect(config.hooks).toEqual([]);
     });

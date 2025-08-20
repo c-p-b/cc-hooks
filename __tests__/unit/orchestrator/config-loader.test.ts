@@ -28,7 +28,7 @@ describe('ConfigLoader', () => {
       const validConfig: HooksConfigFile = {
         logging: {
           level: 'verbose',
-          path: '/custom/log/path.log'
+          path: '/custom/log/path.log',
         },
         hooks: [
           {
@@ -37,9 +37,9 @@ describe('ConfigLoader', () => {
             events: ['PostToolUse'],
             outputFormat: 'text',
             exitCodeMap: { '0': 'success' },
-            message: 'Test message'
-          }
-        ]
+            message: 'Test message',
+          },
+        ],
       };
 
       const configPath = path.join(tempDir, 'config.json');
@@ -68,9 +68,9 @@ describe('ConfigLoader', () => {
             events: ['Stop'],
             outputFormat: 'text',
             exitCodeMap: { '0': 'success' },
-            message: 'Done'
-          }
-        ]
+            message: 'Done',
+          },
+        ],
       };
 
       const validated = loader.validate(config);
@@ -85,9 +85,9 @@ describe('ConfigLoader', () => {
             name: 'structured',
             command: ['./check.sh'],
             events: ['PreToolUse'],
-            outputFormat: 'structured'
-          }
-        ]
+            outputFormat: 'structured',
+          },
+        ],
       };
 
       const validated = loader.validate(config);
@@ -114,9 +114,9 @@ describe('ConfigLoader', () => {
             events: ['InvalidEvent'],
             outputFormat: 'text',
             exitCodeMap: { '0': 'success' },
-            message: 'Test'
-          }
-        ]
+            message: 'Test',
+          },
+        ],
       };
 
       expect(() => loader.validate(config)).toThrow(/Invalid event 'InvalidEvent'/);
@@ -131,9 +131,9 @@ describe('ConfigLoader', () => {
             events: ['Stop'],
             outputFormat: 'json',
             exitCodeMap: { '0': 'success' },
-            message: 'Test'
-          }
-        ]
+            message: 'Test',
+          },
+        ],
       };
 
       expect(() => loader.validate(config)).toThrow(/outputFormat must be one of/);
@@ -147,9 +147,9 @@ describe('ConfigLoader', () => {
             command: ['ls'],
             events: ['Stop'],
             outputFormat: 'text',
-            message: 'Test'
-          }
-        ]
+            message: 'Test',
+          },
+        ],
       };
 
       expect(() => loader.validate(config)).toThrow(/must have an exitCodeMap/);
@@ -163,9 +163,9 @@ describe('ConfigLoader', () => {
             command: ['ls'],
             events: ['Stop'],
             outputFormat: 'text',
-            exitCodeMap: { '0': 'success' }
-          }
-        ]
+            exitCodeMap: { '0': 'success' },
+          },
+        ],
       };
 
       expect(() => loader.validate(config)).toThrow(/must have a message/);
@@ -180,9 +180,9 @@ describe('ConfigLoader', () => {
             events: ['Stop'],
             outputFormat: 'text',
             exitCodeMap: { '0': 'continue' },
-            message: 'Test'
-          }
-        ]
+            message: 'Test',
+          },
+        ],
       };
 
       expect(() => loader.validate(config)).toThrow(/Invalid flow control 'continue'/);
@@ -197,9 +197,9 @@ describe('ConfigLoader', () => {
             events: ['Stop'],
             outputFormat: 'text',
             exitCodeMap: { '0': 'success' },
-            message: 'Test'
-          }
-        ]
+            message: 'Test',
+          },
+        ],
       };
 
       expect(() => loader.validate(config)).toThrow(/command must be a non-empty array/);
@@ -214,9 +214,9 @@ describe('ConfigLoader', () => {
             events: ['Stop'],
             outputFormat: 'text',
             exitCodeMap: { '0': 'success' },
-            message: 'Test'
-          }
-        ]
+            message: 'Test',
+          },
+        ],
       };
 
       expect(() => loader.validate(config)).toThrow(/command array must contain only strings/);
@@ -231,13 +231,13 @@ describe('ConfigLoader', () => {
             description: 'List files',
             events: ['Stop'],
             priority: 50,
-            timeout: 5,  // 5 seconds (will be converted to 5000ms)
+            timeout: 5, // 5 seconds (will be converted to 5000ms)
             outputFormat: 'text',
-            exitCodeMap: { '0': 'success', 'default': 'non-blocking-error' },
+            exitCodeMap: { '0': 'success', default: 'non-blocking-error' },
             message: 'Done',
-            fixInstructions: 'Check permissions'
-          }
-        ]
+            fixInstructions: 'Check permissions',
+          },
+        ],
       };
 
       const validated = loader.validate(config);
@@ -252,9 +252,9 @@ describe('ConfigLoader', () => {
       const config = {
         logging: {
           level: 'verbose',
-          path: '/custom/path.log'
+          path: '/custom/path.log',
         },
-        hooks: []
+        hooks: [],
       };
 
       const validated = loader.validate(config);
@@ -265,9 +265,9 @@ describe('ConfigLoader', () => {
     it('should reject invalid log level', () => {
       const config = {
         logging: {
-          level: 'debug'
+          level: 'debug',
         },
-        hooks: []
+        hooks: [],
       };
 
       expect(() => loader.validate(config)).toThrow(/logging.level must be one of/);
@@ -284,7 +284,7 @@ describe('ConfigLoader', () => {
           priority: 10,
           outputFormat: 'text',
           exitCodeMap: { '0': 'success' },
-          message: 'High'
+          message: 'High',
         },
         {
           name: 'default-priority',
@@ -292,7 +292,7 @@ describe('ConfigLoader', () => {
           events: ['PostToolUse'],
           outputFormat: 'text',
           exitCodeMap: { '0': 'success' },
-          message: 'Default'
+          message: 'Default',
         },
         {
           name: 'low-priority',
@@ -301,7 +301,7 @@ describe('ConfigLoader', () => {
           priority: 200,
           outputFormat: 'text',
           exitCodeMap: { '0': 'success' },
-          message: 'Low'
+          message: 'Low',
         },
         {
           name: 'different-event',
@@ -309,9 +309,9 @@ describe('ConfigLoader', () => {
           events: ['PreToolUse'],
           outputFormat: 'text',
           exitCodeMap: { '0': 'success' },
-          message: 'Different'
-        }
-      ]
+          message: 'Different',
+        },
+      ],
     };
 
     it('should filter hooks by event', () => {

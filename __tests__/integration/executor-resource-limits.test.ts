@@ -3,11 +3,11 @@ import { TextHook } from '../../src/common/types';
 
 describe('HookExecutor Resource Limits', () => {
   let executor: HookExecutor;
-  
+
   beforeEach(() => {
     executor = new HookExecutor();
   });
-  
+
   afterEach(async () => {
     await executor.shutdown();
   });
@@ -19,9 +19,9 @@ describe('HookExecutor Resource Limits', () => {
         command: ['sleep', '10'],
         events: ['Stop'],
         outputFormat: 'text',
-        exitCodeMap: { '0': 'success', 'default': 'non-blocking-error' },
+        exitCodeMap: { '0': 'success', default: 'non-blocking-error' },
         message: 'Hook timed out',
-        timeout: 100 // 100ms timeout
+        timeout: 100, // 100ms timeout
       };
 
       const context: ExecutionContext = {
@@ -29,12 +29,12 @@ describe('HookExecutor Resource Limits', () => {
           hook_event_name: 'Stop',
           session_id: 'test-timeout',
           transcript_path: '',
-          cwd: process.cwd()
-        }
+          cwd: process.cwd(),
+        },
       };
 
       const result = await executor.execute(hook, context);
-      
+
       expect(result.timedOut).toBe(true);
       expect(result.exitCode).not.toBe(0);
       expect(result.duration).toBeGreaterThanOrEqual(100);
@@ -47,9 +47,9 @@ describe('HookExecutor Resource Limits', () => {
         command: ['echo', 'hello'],
         events: ['Stop'],
         outputFormat: 'text',
-        exitCodeMap: { '0': 'success', 'default': 'non-blocking-error' },
+        exitCodeMap: { '0': 'success', default: 'non-blocking-error' },
         message: 'Success',
-        timeout: 5000
+        timeout: 5000,
       };
 
       const context: ExecutionContext = {
@@ -57,12 +57,12 @@ describe('HookExecutor Resource Limits', () => {
           hook_event_name: 'Stop',
           session_id: 'test-normal',
           transcript_path: '',
-          cwd: process.cwd()
-        }
+          cwd: process.cwd(),
+        },
       };
 
       const result = await executor.execute(hook, context);
-      
+
       expect(result.timedOut).toBe(false);
       expect(result.exitCode).toBe(0);
       expect(result.rawOutput.trim()).toBe('hello');
@@ -74,11 +74,15 @@ describe('HookExecutor Resource Limits', () => {
       // Create a command that generates lots of output
       const hook: TextHook = {
         name: 'chatty-hook',
-        command: ['sh', '-c', 'for i in $(seq 1 100000); do echo "Line $i: This is a very long line of output that will eventually exceed our limit"; done'],
+        command: [
+          'sh',
+          '-c',
+          'for i in $(seq 1 100000); do echo "Line $i: This is a very long line of output that will eventually exceed our limit"; done',
+        ],
         events: ['Stop'],
         outputFormat: 'text',
-        exitCodeMap: { '0': 'success', 'default': 'non-blocking-error' },
-        message: 'Too much output'
+        exitCodeMap: { '0': 'success', default: 'non-blocking-error' },
+        message: 'Too much output',
       };
 
       const context: ExecutionContext = {
@@ -86,16 +90,16 @@ describe('HookExecutor Resource Limits', () => {
           hook_event_name: 'Stop',
           session_id: 'test-output-limit',
           transcript_path: '',
-          cwd: process.cwd()
+          cwd: process.cwd(),
         },
         resourceLimits: {
           maxOutputBytes: 1024, // 1KB limit for testing
-          timeoutMs: 5000
-        }
+          timeoutMs: 5000,
+        },
       };
 
       const result = await executor.execute(hook, context);
-      
+
       expect(result.truncated).toBe(true);
       expect(result.rawOutput.length).toBeLessThanOrEqual(1024);
     });
@@ -106,8 +110,8 @@ describe('HookExecutor Resource Limits', () => {
         command: ['echo', 'Small output'],
         events: ['Stop'],
         outputFormat: 'text',
-        exitCodeMap: { '0': 'success', 'default': 'non-blocking-error' },
-        message: 'Success'
+        exitCodeMap: { '0': 'success', default: 'non-blocking-error' },
+        message: 'Success',
       };
 
       const context: ExecutionContext = {
@@ -115,16 +119,16 @@ describe('HookExecutor Resource Limits', () => {
           hook_event_name: 'Stop',
           session_id: 'test-normal-output',
           transcript_path: '',
-          cwd: process.cwd()
+          cwd: process.cwd(),
         },
         resourceLimits: {
           maxOutputBytes: 1048576, // 1MB
-          timeoutMs: 30000
-        }
+          timeoutMs: 30000,
+        },
       };
 
       const result = await executor.execute(hook, context);
-      
+
       expect(result.truncated).toBe(false);
       expect(result.rawOutput.trim()).toBe('Small output');
     });
@@ -138,25 +142,25 @@ describe('HookExecutor Resource Limits', () => {
           command: ['sh', '-c', 'sleep 0.1 && echo "Hook 1"'],
           events: ['Stop'],
           outputFormat: 'text',
-          exitCodeMap: { '0': 'success', 'default': 'non-blocking-error' },
-          message: 'Hook 1'
+          exitCodeMap: { '0': 'success', default: 'non-blocking-error' },
+          message: 'Hook 1',
         },
         {
           name: 'hook2',
           command: ['sh', '-c', 'sleep 0.1 && echo "Hook 2"'],
           events: ['Stop'],
           outputFormat: 'text',
-          exitCodeMap: { '0': 'success', 'default': 'non-blocking-error' },
-          message: 'Hook 2'
+          exitCodeMap: { '0': 'success', default: 'non-blocking-error' },
+          message: 'Hook 2',
         },
         {
           name: 'hook3',
           command: ['sh', '-c', 'sleep 0.1 && echo "Hook 3"'],
           events: ['Stop'],
           outputFormat: 'text',
-          exitCodeMap: { '0': 'success', 'default': 'non-blocking-error' },
-          message: 'Hook 3'
-        }
+          exitCodeMap: { '0': 'success', default: 'non-blocking-error' },
+          message: 'Hook 3',
+        },
       ];
 
       const context: ExecutionContext = {
@@ -164,14 +168,14 @@ describe('HookExecutor Resource Limits', () => {
           hook_event_name: 'Stop',
           session_id: 'test-parallel',
           transcript_path: '',
-          cwd: process.cwd()
-        }
+          cwd: process.cwd(),
+        },
       };
 
       const startTime = Date.now();
       const results = await executor.executeAll(hooks, context);
       const totalTime = Date.now() - startTime;
-      
+
       // If run sequentially, would take 300ms minimum
       // In parallel, should complete in ~100ms
       expect(totalTime).toBeLessThan(250);
@@ -188,17 +192,17 @@ describe('HookExecutor Resource Limits', () => {
           command: ['echo', 'Success'],
           events: ['Stop'],
           outputFormat: 'text',
-          exitCodeMap: { '0': 'success', 'default': 'non-blocking-error' },
-          message: 'Success'
+          exitCodeMap: { '0': 'success', default: 'non-blocking-error' },
+          message: 'Success',
         },
         {
           name: 'failure-hook',
           command: ['sh', '-c', 'exit 1'],
           events: ['Stop'],
           outputFormat: 'text',
-          exitCodeMap: { '0': 'success', '1': 'blocking-error', 'default': 'non-blocking-error' },
-          message: 'Failed'
-        }
+          exitCodeMap: { '0': 'success', '1': 'blocking-error', default: 'non-blocking-error' },
+          message: 'Failed',
+        },
       ];
 
       const context: ExecutionContext = {
@@ -206,12 +210,12 @@ describe('HookExecutor Resource Limits', () => {
           hook_event_name: 'Stop',
           session_id: 'test-partial-failure',
           transcript_path: '',
-          cwd: process.cwd()
-        }
+          cwd: process.cwd(),
+        },
       };
 
       const results = await executor.executeAll(hooks, context);
-      
+
       expect(results).toHaveLength(2);
       expect(results[0]?.flowControl).toBe('success');
       expect(results[1]?.flowControl).toBe('blocking-error');
@@ -225,13 +229,13 @@ describe('HookExecutor Resource Limits', () => {
         command: ['sh', '-c', 'exit 2'],
         events: ['Stop'],
         outputFormat: 'text',
-        exitCodeMap: { 
+        exitCodeMap: {
           '0': 'success',
           '1': 'non-blocking-error',
           '2': 'blocking-error',
-          'default': 'non-blocking-error'
+          default: 'non-blocking-error',
         },
-        message: 'Exit code test'
+        message: 'Exit code test',
       };
 
       const context: ExecutionContext = {
@@ -239,12 +243,12 @@ describe('HookExecutor Resource Limits', () => {
           hook_event_name: 'Stop',
           session_id: 'test-exit-code',
           transcript_path: '',
-          cwd: process.cwd()
-        }
+          cwd: process.cwd(),
+        },
       };
 
       const result = await executor.execute(hook, context);
-      
+
       expect(result.exitCode).toBe(2);
       expect(result.flowControl).toBe('blocking-error');
     });
@@ -255,11 +259,11 @@ describe('HookExecutor Resource Limits', () => {
         command: ['sh', '-c', 'exit 99'],
         events: ['Stop'],
         outputFormat: 'text',
-        exitCodeMap: { 
+        exitCodeMap: {
           '0': 'success',
-          'default': 'non-blocking-error'
+          default: 'non-blocking-error',
         },
-        message: 'Default mapping test'
+        message: 'Default mapping test',
       };
 
       const context: ExecutionContext = {
@@ -267,12 +271,12 @@ describe('HookExecutor Resource Limits', () => {
           hook_event_name: 'Stop',
           session_id: 'test-default-mapping',
           transcript_path: '',
-          cwd: process.cwd()
-        }
+          cwd: process.cwd(),
+        },
       };
 
       const result = await executor.execute(hook, context);
-      
+
       expect(result.exitCode).toBe(99);
       expect(result.flowControl).toBe('non-blocking-error');
     });
@@ -285,8 +289,8 @@ describe('HookExecutor Resource Limits', () => {
         command: ['sh', '-c', 'echo "PROJECT_DIR=$CLAUDE_PROJECT_DIR"'],
         events: ['Stop'],
         outputFormat: 'text',
-        exitCodeMap: { '0': 'success', 'default': 'non-blocking-error' },
-        message: 'Env test'
+        exitCodeMap: { '0': 'success', default: 'non-blocking-error' },
+        message: 'Env test',
       };
 
       const context: ExecutionContext = {
@@ -294,12 +298,12 @@ describe('HookExecutor Resource Limits', () => {
           hook_event_name: 'Stop',
           session_id: 'test-env',
           transcript_path: '',
-          cwd: process.cwd()
-        }
+          cwd: process.cwd(),
+        },
       };
 
       const result = await executor.execute(hook, context);
-      
+
       expect(result.rawOutput).toContain('PROJECT_DIR=');
       expect(result.exitCode).toBe(0);
     });

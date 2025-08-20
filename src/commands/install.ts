@@ -45,7 +45,9 @@ export class InstallCommand {
         if (existingHook && !options.force) {
           if (hooksToInstall.length === 1) {
             // Single hook install - throw error as before
-            throw new CCHooksError(`Hook '${hookDef.name}' already exists. Use --force to overwrite.`);
+            throw new CCHooksError(
+              `Hook '${hookDef.name}' already exists. Use --force to overwrite.`,
+            );
           }
           // Bundle install - silently overwrite
           // When installing a bundle, users expect the full bundle
@@ -122,43 +124,46 @@ export class InstallCommand {
     );
   }
 
-  private async loadBuiltInTemplate(name: string): Promise<HookDefinition | HookDefinition[] | null> {
+  private async loadBuiltInTemplate(
+    name: string,
+  ): Promise<HookDefinition | HookDefinition[] | null> {
     try {
       const templatesDir = path.join(__dirname, '..', '..', 'templates');
-      
+
       // First check if it's a directory (bundle)
       const bundlePath = path.join(templatesDir, name);
       if (fs.existsSync(bundlePath) && fs.statSync(bundlePath).isDirectory()) {
         // Load all .json files from the directory
-        const hookFiles = fs.readdirSync(bundlePath)
-          .filter(f => f.endsWith('.json'))
+        const hookFiles = fs
+          .readdirSync(bundlePath)
+          .filter((f) => f.endsWith('.json'))
           .sort(); // Sort for consistent ordering
-        
+
         if (hookFiles.length === 0) {
           return null;
         }
-        
+
         const hooks: HookDefinition[] = [];
         for (const file of hookFiles) {
           try {
             const content = fs.readFileSync(path.join(bundlePath, file), 'utf-8');
             const hookDef = JSON.parse(content);
-            
+
             // Prefix hook name with bundle name to avoid collisions
             if (!hookDef.name.startsWith(`${name}:`)) {
               hookDef.name = `${name}:${hookDef.name}`;
             }
-            
+
             hooks.push(this.validateHookDefinition(hookDef));
           } catch (error) {
             // Fail the entire bundle installation if any hook is invalid
             throw new CCHooksError(`Failed to load hook from ${file} in bundle ${name}: ${error}`);
           }
         }
-        
+
         return hooks;
       }
-      
+
       // Otherwise try as single template file
       let templatePath = path.join(templatesDir, `${name}.json`);
 

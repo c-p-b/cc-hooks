@@ -8,7 +8,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 export interface RunOptions {
-  config?: string;  // Custom config path
+  config?: string; // Custom config path
   debug?: boolean;
 }
 
@@ -30,7 +30,6 @@ export class RunCommand {
     }
 
     let event: ClaudeHookEvent;
-    let configPath: string | null;
     let config: any;
     let hooks: HookDefinition[];
 
@@ -57,16 +56,21 @@ export class RunCommand {
       return;
     }
 
-    // Load configuration (outside try-catch for process.exit)
-    configPath = options.config || this.findConfigFile();
-    if (!configPath) {
-      // No config file = no hooks to run, short-circuit
-      process.exit(EXIT_SUCCESS);
-      return;
-    }
-
+    // Load and merge configurations (outside try-catch for process.exit)
     try {
-      config = this.configLoader.load(configPath);
+      if (options.config) {
+        // Use custom config path if provided
+        config = this.configLoader.load(options.config);
+      } else {
+        // Load and merge all config tiers
+        config = this.loadMergedConfig();
+      }
+
+      if (!config || config.hooks.length === 0) {
+        // No hooks configured, short-circuit
+        process.exit(EXIT_SUCCESS);
+        return;
+      }
     } catch (error) {
       this.handleError(error);
       return;
@@ -116,7 +120,6 @@ export class RunCommand {
     process.exit(exitCode);
   }
 
-
   private async readStdin(): Promise<ClaudeHookEvent> {
     return new Promise((resolve, reject) => {
       let data = '';
@@ -149,24 +152,36 @@ export class RunCommand {
     });
   }
 
-  private findConfigFile(): string | null {
-    // Check for cc-hooks.json in priority order (most specific first)
-    const locations = [
-      // Local (highest priority - local overrides)
-      path.join(this.cwd, '.claude', 'cc-hooks-local.json'),
-      // Project
-      path.join(this.cwd, '.claude', 'cc-hooks.json'),
-      // Global (lowest priority)
-      path.join(process.env.HOME || '', '.claude', 'cc-hooks.json'),
-    ];
+  private loadMergedConfig(): any {
+    // Load configs in priority order (global -> project -> local)
+    // Later configs override earlier ones
+    const configs = [];
 
-    for (const location of locations) {
-      if (fs.existsSync(location)) {
-        return location;
-      }
+    // Global config (lowest priority)
+    const globalPath = path.join(process.env.HOME || '', '.claude', 'cc-hooks.json');
+    if (fs.existsSync(globalPath)) {
+      configs.push(this.configLoader.load(globalPath));
     }
 
-    return null;
+    // Project config
+    const projectPath = path.join(this.cwd, '.claude', 'cc-hooks.json');
+    if (fs.existsSync(projectPath)) {
+      configs.push(this.configLoader.load(projectPath));
+    }
+
+    // Local config (highest priority)
+    const localPath = path.join(this.cwd, '.claude', 'cc-hooks-local.json');
+    if (fs.existsSync(localPath)) {
+      configs.push(this.configLoader.load(localPath));
+    }
+
+    // If no configs found, return empty config
+    if (configs.length === 0) {
+      return { hooks: [] };
+    }
+
+    // Merge all configs (later ones override earlier ones)
+    return this.configLoader.merge(...configs);
   }
 
   private async executeHooks(

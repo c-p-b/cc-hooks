@@ -18,14 +18,20 @@ export class TemplatesCommand {
     }
 
     const entries = fs.readdirSync(this.templatesDir, { withFileTypes: true });
-    const templates: { name: string; type: 'bundle' | 'hook'; description: string; hooks?: string[] }[] = [];
+    const templates: {
+      name: string;
+      type: 'bundle' | 'hook';
+      description: string;
+      hooks?: string[];
+    }[] = [];
 
     for (const entry of entries) {
       if (entry.isDirectory()) {
         // Bundle - directory with multiple hooks
         const bundlePath = path.join(this.templatesDir, entry.name);
-        const hookFiles = fs.readdirSync(bundlePath)
-          .filter(f => f.endsWith('.json'))
+        const hookFiles = fs
+          .readdirSync(bundlePath)
+          .filter((f) => f.endsWith('.json'))
           .sort();
 
         if (hookFiles.length > 0) {
@@ -42,7 +48,7 @@ export class TemplatesCommand {
 
             // Create bundle description based on actual content
             bundleDescription = this.getBundleDescription(entry.name, hooks);
-          } catch (error) {
+          } catch {
             bundleDescription = `Bundle with ${hookFiles.length} hooks (error reading)`;
           }
 
@@ -50,7 +56,7 @@ export class TemplatesCommand {
             name: entry.name,
             type: 'bundle',
             description: bundleDescription,
-            hooks
+            hooks,
           });
         }
       } else if (entry.name.endsWith('.json')) {
@@ -59,17 +65,17 @@ export class TemplatesCommand {
         try {
           const content = fs.readFileSync(templatePath, 'utf-8');
           const hook = JSON.parse(content);
-          
+
           templates.push({
             name: entry.name.replace('.json', ''),
             type: 'hook',
-            description: hook.description || 'No description'
+            description: hook.description || 'No description',
           });
-        } catch (error) {
+        } catch {
           templates.push({
             name: entry.name.replace('.json', ''),
             type: 'hook',
-            description: 'Error reading template'
+            description: 'Error reading template',
           });
         }
       }
@@ -81,11 +87,13 @@ export class TemplatesCommand {
     }
 
     // Display bundles first
-    const bundles = templates.filter(t => t.type === 'bundle');
-    const hooks = templates.filter(t => t.type === 'hook');
+    const bundles = templates.filter((t) => t.type === 'bundle');
+    const hooks = templates.filter((t) => t.type === 'hook');
 
     if (bundles.length > 0) {
-      console.log(chalk.bold('Template Bundles') + chalk.gray(' (install multiple related hooks):\n'));
+      console.log(
+        chalk.bold('Template Bundles') + chalk.gray(' (install multiple related hooks):\n'),
+      );
       for (const bundle of bundles) {
         console.log(chalk.green(`  ${bundle.name}`) + chalk.gray(` - ${bundle.description}`));
         if (bundle.hooks && bundle.hooks.length > 0) {

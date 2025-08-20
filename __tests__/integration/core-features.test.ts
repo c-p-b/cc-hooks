@@ -1,6 +1,6 @@
 /**
  * Core Features Integration Test
- * 
+ *
  * This test demonstrates that all core features of cc-hooks work correctly:
  * 1. Full workflow: init -> install -> execute -> uninit
  * 2. Resource limits (timeout and output)
@@ -15,7 +15,11 @@ import { InstallCommand } from '../../src/commands/install';
 import { RunCommand } from '../../src/commands/run';
 import { HookExecutor, ExecutionContext } from '../../src/orchestrator/executor';
 import { TextHook, StructuredHook } from '../../src/common/types';
-import { mockProcessExit, expectProcessExit, executeWithExitCapture } from '../helpers/process-exit-mock';
+import {
+  mockProcessExit,
+  expectProcessExit,
+  executeWithExitCapture,
+} from '../helpers/process-exit-mock';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -26,11 +30,11 @@ describe('Core Features Integration Tests', () => {
 
   beforeEach(() => {
     originalHome = process.env.HOME;
-    
+
     // Create isolated test environment
     testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cc-hooks-core-test-'));
     process.env.HOME = testDir;
-    
+
     // Create .claude directory
     fs.mkdirSync(path.join(testDir, '.claude'), { recursive: true });
   });
@@ -38,7 +42,7 @@ describe('Core Features Integration Tests', () => {
   afterEach(() => {
     // Restore environment
     if (originalHome) process.env.HOME = originalHome;
-    
+
     // Clean up
     fs.rmSync(testDir, { recursive: true, force: true });
   });
@@ -48,73 +52,73 @@ describe('Core Features Integration Tests', () => {
       // Step 1: Initialize cc-hooks
       const init = new InitCommand(testDir);
       await init.execute({ force: true });
-      
+
       // Verify settings.json was created with orchestrator
       const settingsPath = path.join(testDir, '.claude', 'settings.json');
       expect(fs.existsSync(settingsPath)).toBe(true);
       const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
       expect(settings.hooks.PreToolUse[0].hooks[0].command).toBe('cc-hooks run');
-      
+
       // Step 2: Install a hook
       const hookDef = {
         name: 'test-workflow-hook',
         command: ['echo', 'Workflow test successful'],
         events: ['Stop'],
         outputFormat: 'text',
-        exitCodeMap: { '0': 'success', 'default': 'non-blocking-error' },
-        message: 'Test hook executed'
+        exitCodeMap: { '0': 'success', default: 'non-blocking-error' },
+        message: 'Test hook executed',
       };
-      
+
       const hookPath = path.join(testDir, 'test-hook.json');
       fs.writeFileSync(hookPath, JSON.stringify(hookDef));
       const install = new InstallCommand(testDir);
       await install.execute(hookPath);
-      
+
       // Verify hook was installed
       const configPath = path.join(testDir, '.claude', 'cc-hooks.json');
       const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
       expect(config.hooks).toHaveLength(1);
       expect(config.hooks[0].name).toBe('test-workflow-hook');
-      
+
       // Step 3: Execute the hook via RunCommand
       const run = new RunCommand(testDir);
       const mockEvent = {
         hook_event_name: 'Stop',
         session_id: 'test-workflow',
         transcript_path: '',
-        cwd: testDir
+        cwd: testDir,
       };
-      
+
       // Mock stdin to provide event data
       const originalStdin = process.stdin;
       const mockStdin = require('stream').Readable.from([JSON.stringify(mockEvent)]);
       Object.defineProperty(process, 'stdin', {
         value: mockStdin,
-        configurable: true
+        configurable: true,
       });
-      
+
       // Capture output
       const consoleLog = jest.spyOn(console, 'log').mockImplementation();
       const exitMock = mockProcessExit();
-      
+
       // Execute and expect exit
       const exitCode = await expectProcessExit(async () => {
         await run.execute();
       });
-      
+
       // Verify hook executed successfully
       expect(consoleLog).toHaveBeenCalledWith(expect.stringContaining('Workflow test successful'));
       expect(exitCode).toBe(0); // Success exit
-      
+
       // Restore stdin
       Object.defineProperty(process, 'stdin', { value: originalStdin, configurable: true });
       consoleLog.mockRestore();
       exitMock.restore();
-      
+
       // Step 4: Uninitialize
       const uninit = new UninitCommand(testDir);
       await uninit.execute();
-      
+
       // Verify cleanup
       expect(fs.existsSync(configPath)).toBe(false);
       const finalSettings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
@@ -139,9 +143,9 @@ describe('Core Features Integration Tests', () => {
         command: ['sh', '-c', 'sleep 5'],
         events: ['Stop'],
         outputFormat: 'text',
-        exitCodeMap: { '0': 'success', 'default': 'non-blocking-error' },
+        exitCodeMap: { '0': 'success', default: 'non-blocking-error' },
         message: 'Timeout test',
-        timeout: 100 // 100ms timeout
+        timeout: 100, // 100ms timeout
       };
 
       const context: ExecutionContext = {
@@ -149,8 +153,8 @@ describe('Core Features Integration Tests', () => {
           hook_event_name: 'Stop',
           session_id: 'timeout-test',
           transcript_path: '',
-          cwd: testDir
-        }
+          cwd: testDir,
+        },
       };
 
       const startTime = Date.now();
@@ -166,11 +170,15 @@ describe('Core Features Integration Tests', () => {
     it('should enforce output limits', async () => {
       const chattyHook: TextHook = {
         name: 'output-limit-test',
-        command: ['sh', '-c', 'i=1; while [ $i -le 10000 ]; do echo "Line $i: This is a long line that will exceed limits"; i=$((i+1)); done'],
+        command: [
+          'sh',
+          '-c',
+          'i=1; while [ $i -le 10000 ]; do echo "Line $i: This is a long line that will exceed limits"; i=$((i+1)); done',
+        ],
         events: ['Stop'],
         outputFormat: 'text',
-        exitCodeMap: { '0': 'success', 'default': 'non-blocking-error' },
-        message: 'Output test'
+        exitCodeMap: { '0': 'success', default: 'non-blocking-error' },
+        message: 'Output test',
       };
 
       const context: ExecutionContext = {
@@ -178,12 +186,12 @@ describe('Core Features Integration Tests', () => {
           hook_event_name: 'Stop',
           session_id: 'output-test',
           transcript_path: '',
-          cwd: testDir
+          cwd: testDir,
         },
         resourceLimits: {
           maxOutputBytes: 1024, // 1KB limit
-          timeoutMs: 5000
-        }
+          timeoutMs: 5000,
+        },
       };
 
       const result = await executor.execute(chattyHook, context);
@@ -210,7 +218,7 @@ describe('Core Features Integration Tests', () => {
         { exitCode: 0, expected: 'success' },
         { exitCode: 1, expected: 'non-blocking-error' },
         { exitCode: 2, expected: 'blocking-error' },
-        { exitCode: 99, expected: 'non-blocking-error' } // default
+        { exitCode: 99, expected: 'non-blocking-error' }, // default
       ];
 
       for (const testCase of testCases) {
@@ -223,9 +231,9 @@ describe('Core Features Integration Tests', () => {
             '0': 'success',
             '1': 'non-blocking-error',
             '2': 'blocking-error',
-            'default': 'non-blocking-error'
+            default: 'non-blocking-error',
           },
-          message: `Exit code ${testCase.exitCode}`
+          message: `Exit code ${testCase.exitCode}`,
         };
 
         const context: ExecutionContext = {
@@ -233,12 +241,12 @@ describe('Core Features Integration Tests', () => {
             hook_event_name: 'Stop',
             session_id: `exit-test-${testCase.exitCode}`,
             transcript_path: '',
-            cwd: testDir
-          }
+            cwd: testDir,
+          },
         };
 
         const result = await executor.execute(hook, context);
-        
+
         expect(result.exitCode).toBe(testCase.exitCode);
         expect(result.flowControl).toBe(testCase.expected);
       }
@@ -249,7 +257,7 @@ describe('Core Features Integration Tests', () => {
         name: 'structured-test',
         command: ['sh', '-c', 'echo \'{"success": true, "message": "All good"}\''],
         events: ['PreToolUse'],
-        outputFormat: 'structured'
+        outputFormat: 'structured',
       };
 
       const context: ExecutionContext = {
@@ -258,12 +266,12 @@ describe('Core Features Integration Tests', () => {
           tool_name: 'Edit',
           session_id: 'structured-test',
           transcript_path: '',
-          cwd: testDir
-        }
+          cwd: testDir,
+        },
       };
 
       const result = await executor.execute(structuredHook, context);
-      
+
       expect(result.jsonOutput).toBeDefined();
       expect(result.jsonOutput?.success).toBe(true);
       expect(result.jsonOutput?.message).toBe('All good');
@@ -292,9 +300,9 @@ describe('Core Features Integration Tests', () => {
           command: ['sh', '-c', `sleep 0.2 && echo "Hook ${i} done"`],
           events: ['Stop'],
           outputFormat: 'text',
-          exitCodeMap: { '0': 'success', 'default': 'non-blocking-error' },
+          exitCodeMap: { '0': 'success', default: 'non-blocking-error' },
           message: `Hook ${i}`,
-          priority: i // Different priorities
+          priority: i, // Different priorities
         });
       }
 
@@ -303,8 +311,8 @@ describe('Core Features Integration Tests', () => {
           hook_event_name: 'Stop',
           session_id: 'parallel-test',
           transcript_path: '',
-          cwd: testDir
-        }
+          cwd: testDir,
+        },
       };
 
       const startTime = Date.now();
@@ -314,7 +322,7 @@ describe('Core Features Integration Tests', () => {
       // If run sequentially, would take 1000ms (5 * 200ms)
       // In parallel, should complete in ~200ms
       expect(totalTime).toBeLessThan(600); // Allow some overhead
-      
+
       // Verify all hooks executed
       expect(results).toHaveLength(HOOK_COUNT);
       for (let i = 0; i < HOOK_COUNT; i++) {
@@ -330,25 +338,25 @@ describe('Core Features Integration Tests', () => {
           command: ['echo', 'Success 1'],
           events: ['Stop'],
           outputFormat: 'text',
-          exitCodeMap: { '0': 'success', 'default': 'non-blocking-error' },
-          message: 'Success 1'
+          exitCodeMap: { '0': 'success', default: 'non-blocking-error' },
+          message: 'Success 1',
         },
         {
           name: 'failure-1',
           command: ['sh', '-c', 'echo "Error!" >&2 && exit 1'],
           events: ['Stop'],
           outputFormat: 'text',
-          exitCodeMap: { '0': 'success', '1': 'blocking-error', 'default': 'non-blocking-error' },
-          message: 'Failure 1'
+          exitCodeMap: { '0': 'success', '1': 'blocking-error', default: 'non-blocking-error' },
+          message: 'Failure 1',
         },
         {
           name: 'success-2',
           command: ['echo', 'Success 2'],
           events: ['Stop'],
           outputFormat: 'text',
-          exitCodeMap: { '0': 'success', 'default': 'non-blocking-error' },
-          message: 'Success 2'
-        }
+          exitCodeMap: { '0': 'success', default: 'non-blocking-error' },
+          message: 'Success 2',
+        },
       ];
 
       const context: ExecutionContext = {
@@ -356,8 +364,8 @@ describe('Core Features Integration Tests', () => {
           hook_event_name: 'Stop',
           session_id: 'mixed-parallel-test',
           transcript_path: '',
-          cwd: testDir
-        }
+          cwd: testDir,
+        },
       };
 
       const results = await executor.executeAll(hooks, context);
@@ -384,8 +392,8 @@ describe('Core Features Integration Tests', () => {
           command: ['echo', 'Stop hook executed'],
           events: ['Stop'],
           outputFormat: 'text',
-          exitCodeMap: { '0': 'success', 'default': 'non-blocking-error' },
-          message: 'Stop'
+          exitCodeMap: { '0': 'success', default: 'non-blocking-error' },
+          message: 'Stop',
         },
         {
           name: 'tool-hook',
@@ -393,17 +401,17 @@ describe('Core Features Integration Tests', () => {
           events: ['PreToolUse'],
           matcher: 'Edit',
           outputFormat: 'text',
-          exitCodeMap: { '0': 'success', 'default': 'non-blocking-error' },
-          message: 'Tool'
+          exitCodeMap: { '0': 'success', default: 'non-blocking-error' },
+          message: 'Tool',
         },
         {
           name: 'session-hook',
           command: ['echo', 'Session hook executed'],
           events: ['SessionStart'],
           outputFormat: 'text',
-          exitCodeMap: { '0': 'success', 'default': 'non-blocking-error' },
-          message: 'Session'
-        }
+          exitCodeMap: { '0': 'success', default: 'non-blocking-error' },
+          message: 'Session',
+        },
       ];
 
       // Write config with all hooks
@@ -416,7 +424,7 @@ describe('Core Features Integration Tests', () => {
         hook_event_name: 'Stop',
         session_id: 'event-filter-test',
         transcript_path: '',
-        cwd: testDir
+        cwd: testDir,
       };
 
       const mockStdin1 = require('stream').Readable.from([JSON.stringify(stopEvent)]);
@@ -428,7 +436,7 @@ describe('Core Features Integration Tests', () => {
       const result = await executeWithExitCapture(async () => {
         await run.execute();
       });
-      
+
       // Check for real errors
       if (result.error) {
         throw result.error; // Fail the test on real errors
@@ -448,7 +456,7 @@ describe('Core Features Integration Tests', () => {
         tool_name: 'Edit',
         session_id: 'tool-test',
         transcript_path: '',
-        cwd: testDir
+        cwd: testDir,
       };
 
       const mockStdin2 = require('stream').Readable.from([JSON.stringify(toolEvent)]);
@@ -457,7 +465,7 @@ describe('Core Features Integration Tests', () => {
       const result2 = await executeWithExitCapture(async () => {
         await run.execute();
       });
-      
+
       if (result2.error) {
         throw result2.error;
       }
@@ -469,13 +477,13 @@ describe('Core Features Integration Tests', () => {
 
       // Test 3: PreToolUse with different tool should not run tool-hook
       consoleLog.mockClear();
-      
+
       const otherToolEvent = {
         hook_event_name: 'PreToolUse',
         tool_name: 'Read',
         session_id: 'other-tool-test',
         transcript_path: '',
-        cwd: testDir
+        cwd: testDir,
       };
 
       const mockStdin3 = require('stream').Readable.from([JSON.stringify(otherToolEvent)]);
@@ -484,12 +492,12 @@ describe('Core Features Integration Tests', () => {
       const result3 = await executeWithExitCapture(async () => {
         await run.execute();
       });
-      
+
       // THIS IS WHERE THE BUG WILL SHOW UP
       if (result3.error) {
         throw result3.error; // This will now properly fail the test!
       }
-      
+
       expect(result3.exited).toBe(true);
       expect(result3.exitCode).toBe(0); // Short-circuit exit
 

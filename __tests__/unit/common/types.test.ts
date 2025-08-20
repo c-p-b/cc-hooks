@@ -18,7 +18,7 @@ describe('Type Definitions', () => {
         'PreCompact',
         'SessionStart',
       ];
-      
+
       // This test just ensures the types compile correctly
       expect(validEvents).toHaveLength(8);
     });
@@ -34,7 +34,7 @@ describe('Type Definitions', () => {
         exitCodeMap: {
           '0': 'success',
           '1': 'non-blocking-error',
-          'default': 'blocking-error',
+          default: 'blocking-error',
         },
         message: 'Linting failed',
         priority: 50,
@@ -76,7 +76,7 @@ describe('Type Definitions', () => {
             command: ['eslint', '.'],
             events: ['PostToolUse'],
             outputFormat: 'text',
-            exitCodeMap: { '0': 'success', 'default': 'non-blocking-error' },
+            exitCodeMap: { '0': 'success', default: 'non-blocking-error' },
             message: 'ESLint found issues',
           },
           {

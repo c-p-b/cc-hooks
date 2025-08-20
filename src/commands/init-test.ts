@@ -25,7 +25,7 @@ export class InitTestCommand {
 
     for (const [filename, event] of Object.entries(stubs)) {
       const filepath = path.join(this.testDir, filename);
-      
+
       if (fs.existsSync(filepath)) {
         console.log(chalk.yellow(`⚠️  ${filename} already exists (skipping)`));
         skipped++;
@@ -53,7 +53,7 @@ export class InitTestCommand {
     const baseEvent = {
       session_id: 'test-session',
       transcript_path: '/tmp/test-transcript.jsonl',
-      cwd: this.cwd
+      cwd: this.cwd,
     };
 
     return {
@@ -65,12 +65,12 @@ export class InitTestCommand {
         tool_input: {
           file_path: 'src/index.ts',
           old_string: 'const oldCode = 1',
-          new_string: 'const newCode = 2'
+          new_string: 'const newCode = 2',
         },
         tool_response: {
           success: true,
-          filePath: 'src/index.ts'
-        }
+          filePath: 'src/index.ts',
+        },
       },
 
       'PostToolUse-Write.json': {
@@ -79,12 +79,12 @@ export class InitTestCommand {
         tool_name: 'Write',
         tool_input: {
           file_path: 'src/new-file.ts',
-          content: 'export function hello() {\n  console.log("Hello, world!");\n}\n'
+          content: 'export function hello() {\n  console.log("Hello, world!");\n}\n',
         },
         tool_response: {
           success: true,
-          filePath: 'src/new-file.ts'
-        }
+          filePath: 'src/new-file.ts',
+        },
       },
 
       'PostToolUse-MultiEdit.json': {
@@ -95,14 +95,14 @@ export class InitTestCommand {
           file_path: 'src/index.ts',
           edits: [
             { old_string: 'import foo from "foo"', new_string: 'import bar from "bar"' },
-            { old_string: 'const x = 1', new_string: 'const x = 2' }
-          ]
+            { old_string: 'const x = 1', new_string: 'const x = 2' },
+          ],
         },
         tool_response: {
           success: true,
           filePath: 'src/index.ts',
-          editCount: 2
-        }
+          editCount: 2,
+        },
       },
 
       // Command execution
@@ -112,8 +112,8 @@ export class InitTestCommand {
         tool_name: 'Bash',
         tool_input: {
           command: 'npm test',
-          description: 'Run test suite'
-        }
+          description: 'Run test suite',
+        },
       },
 
       'PostToolUse-Bash.json': {
@@ -122,13 +122,13 @@ export class InitTestCommand {
         tool_name: 'Bash',
         tool_input: {
           command: 'npm test',
-          description: 'Run test suite'
+          description: 'Run test suite',
         },
         tool_response: {
           stdout: 'All tests passed!',
           stderr: '',
-          exitCode: 0
-        }
+          exitCode: 0,
+        },
       },
 
       // File reading
@@ -137,42 +137,42 @@ export class InitTestCommand {
         hook_event_name: 'PreToolUse',
         tool_name: 'Read',
         tool_input: {
-          file_path: 'package.json'
-        }
+          file_path: 'package.json',
+        },
       },
 
       // Stop events
       'Stop.json': {
         ...baseEvent,
         hook_event_name: 'Stop',
-        stop_hook_active: false
+        stop_hook_active: false,
       },
 
       'SubagentStop.json': {
         ...baseEvent,
         hook_event_name: 'SubagentStop',
-        stop_hook_active: false
+        stop_hook_active: false,
       },
 
       // Session events
       'SessionStart.json': {
         ...baseEvent,
         hook_event_name: 'SessionStart',
-        source: 'startup'
+        source: 'startup',
       },
 
       // User interaction
       'UserPromptSubmit.json': {
         ...baseEvent,
         hook_event_name: 'UserPromptSubmit',
-        prompt: 'Fix the type errors in my code'
+        prompt: 'Fix the type errors in my code',
       },
 
       // Notifications
       'Notification.json': {
         ...baseEvent,
         hook_event_name: 'Notification',
-        message: 'Claude needs your permission to use Bash'
+        message: 'Claude needs your permission to use Bash',
       },
 
       // Compact
@@ -180,8 +180,8 @@ export class InitTestCommand {
         ...baseEvent,
         hook_event_name: 'PreCompact',
         trigger: 'manual',
-        custom_instructions: ''
-      }
+        custom_instructions: '',
+      },
     };
   }
 
@@ -190,7 +190,7 @@ export class InitTestCommand {
     const eventWithHelp = {
       _comment: `Test event: ${filename.replace('.json', '')}`,
       _help: this.getHelpText(event),
-      ...event
+      ...event,
     };
 
     return JSON.stringify(eventWithHelp, null, 2);

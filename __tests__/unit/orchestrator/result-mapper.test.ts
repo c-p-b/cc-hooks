@@ -17,9 +17,9 @@ describe('ResultMapper', () => {
       exitCodeMap: {
         '0': 'success',
         '1': 'non-blocking-error',
-        '2': 'blocking-error'
+        '2': 'blocking-error',
       },
-      message: 'Test completed'
+      message: 'Test completed',
     };
 
     it('should map exit code 0 to success', () => {
@@ -29,7 +29,7 @@ describe('ResultMapper', () => {
         stdout: 'OK',
         stderr: '',
         truncated: false,
-        timedOut: false
+        timedOut: false,
       };
 
       const mapped = mapper.map(textHook, result);
@@ -45,7 +45,7 @@ describe('ResultMapper', () => {
         stdout: '',
         stderr: 'Warning',
         truncated: false,
-        timedOut: false
+        timedOut: false,
       };
 
       const mapped = mapper.map(textHook, result);
@@ -60,7 +60,7 @@ describe('ResultMapper', () => {
         stdout: '',
         stderr: 'Error',
         truncated: false,
-        timedOut: false
+        timedOut: false,
       };
 
       const mapped = mapper.map(textHook, result);
@@ -72,8 +72,8 @@ describe('ResultMapper', () => {
         ...textHook,
         exitCodeMap: {
           '0': 'success',
-          'default': 'blocking-error'
-        }
+          default: 'blocking-error',
+        },
       };
 
       const result: HookExecutionResult = {
@@ -82,7 +82,7 @@ describe('ResultMapper', () => {
         stdout: '',
         stderr: 'Unknown error',
         truncated: false,
-        timedOut: false
+        timedOut: false,
       };
 
       const mapped = mapper.map(hookWithDefault, result);
@@ -96,7 +96,7 @@ describe('ResultMapper', () => {
         stdout: '',
         stderr: '',
         truncated: false,
-        timedOut: true
+        timedOut: true,
       };
 
       const mapped = mapper.map(textHook, result);
@@ -110,7 +110,7 @@ describe('ResultMapper', () => {
         stdout: 'Truncated output',
         stderr: '',
         truncated: true,
-        timedOut: false
+        timedOut: false,
       };
 
       const mapped = mapper.map(textHook, result);
@@ -123,7 +123,7 @@ describe('ResultMapper', () => {
       name: 'structured-hook',
       command: ['./check.sh'],
       events: ['PreToolUse'],
-      outputFormat: 'structured'
+      outputFormat: 'structured',
     };
 
     it('should parse valid diagnostic report', () => {
@@ -134,9 +134,9 @@ describe('ResultMapper', () => {
             file: 'test.ts',
             line: 10,
             message: 'Type error',
-            severity: 'error' as const
-          }
-        ]
+            severity: 'error' as const,
+          },
+        ],
       };
 
       const result: HookExecutionResult = {
@@ -145,7 +145,7 @@ describe('ResultMapper', () => {
         stdout: JSON.stringify(diagnosticReport),
         stderr: '',
         truncated: false,
-        timedOut: false
+        timedOut: false,
       };
 
       const mapped = mapper.map(structuredHook, result);
@@ -160,8 +160,8 @@ describe('ResultMapper', () => {
         controlFlow: {
           continue: false,
           reason: 'Critical error',
-          decision: 'block' as const
-        }
+          decision: 'block' as const,
+        },
       };
 
       const result: HookExecutionResult = {
@@ -170,7 +170,7 @@ describe('ResultMapper', () => {
         stdout: JSON.stringify(diagnosticReport),
         stderr: '',
         truncated: false,
-        timedOut: false
+        timedOut: false,
       };
 
       const mapped = mapper.map(structuredHook, result);
@@ -185,7 +185,7 @@ describe('ResultMapper', () => {
         stdout: 'Not valid JSON',
         stderr: '',
         truncated: false,
-        timedOut: false
+        timedOut: false,
       };
 
       const mapped = mapper.map(structuredHook, result);
@@ -201,7 +201,7 @@ describe('ResultMapper', () => {
         stdout: 'Invalid JSON',
         stderr: 'Parse error',
         truncated: false,
-        timedOut: false
+        timedOut: false,
       };
 
       const mapped = mapper.map(structuredHook, result);
@@ -217,9 +217,9 @@ describe('ResultMapper', () => {
             file: 'test.ts',
             line: 'not a number', // Invalid
             message: 'Error',
-            severity: 'error'
-          }
-        ]
+            severity: 'error',
+          },
+        ],
       };
 
       const result: HookExecutionResult = {
@@ -228,7 +228,7 @@ describe('ResultMapper', () => {
         stdout: JSON.stringify(invalidReport),
         stderr: '',
         truncated: false,
-        timedOut: false
+        timedOut: false,
       };
 
       const mapped = mapper.map(structuredHook, result);
@@ -242,12 +242,12 @@ describe('ResultMapper', () => {
         stdout: '',
         stderr: '',
         truncated: false,
-        timedOut: true
+        timedOut: true,
       };
 
       const hookWithTimeout: StructuredHook = {
         ...structuredHook,
-        timeout: 5000
+        timeout: 5000,
       };
 
       const mapped = mapper.map(hookWithTimeout, result);
@@ -263,7 +263,7 @@ describe('ResultMapper', () => {
         events: ['Stop'],
         outputFormat: 'text',
         exitCodeMap: { '0': 'success' },
-        message: 'Test'
+        message: 'Test',
       };
 
       const result: HookExecutionResult = {
@@ -272,7 +272,7 @@ describe('ResultMapper', () => {
         stdout: '',
         stderr: 'Killed',
         truncated: false,
-        timedOut: false
+        timedOut: false,
       };
 
       const mapped = mapper.map(hook, result);
@@ -284,7 +284,7 @@ describe('ResultMapper', () => {
         name: 'empty',
         command: ['true'],
         events: ['Stop'],
-        outputFormat: 'structured'
+        outputFormat: 'structured',
       };
 
       const result: HookExecutionResult = {
@@ -293,7 +293,7 @@ describe('ResultMapper', () => {
         stdout: '',
         stderr: '',
         truncated: false,
-        timedOut: false
+        timedOut: false,
       };
 
       const mapped = mapper.map(hook, result);

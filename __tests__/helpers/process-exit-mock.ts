@@ -24,10 +24,12 @@ export interface ProcessExitMock {
  * without hiding real errors.
  */
 export function mockProcessExit(): ProcessExitMock {
-  const mock = jest.spyOn(process, 'exit').mockImplementation((code?: string | number | null | undefined) => {
-    const exitCode = typeof code === 'number' ? code : 0;
-    throw new ProcessExitMockError(exitCode);
-  }) as any;
+  const mock = jest
+    .spyOn(process, 'exit')
+    .mockImplementation((code?: string | number | null | undefined) => {
+      const exitCode = typeof code === 'number' ? code : 0;
+      throw new ProcessExitMockError(exitCode);
+    }) as any;
 
   return {
     mock,
@@ -39,7 +41,7 @@ export function mockProcessExit(): ProcessExitMock {
     },
     restore() {
       mock.mockRestore();
-    }
+    },
   };
 }
 
@@ -47,9 +49,7 @@ export function mockProcessExit(): ProcessExitMock {
  * Executes a function that's expected to call process.exit,
  * and returns the exit code. Re-throws any non-exit errors.
  */
-export async function expectProcessExit(
-  fn: () => Promise<void> | void
-): Promise<number> {
+export async function expectProcessExit(fn: () => Promise<void> | void): Promise<number> {
   try {
     await fn();
     throw new Error('Expected process.exit to be called, but it was not');
@@ -67,7 +67,7 @@ export async function expectProcessExit(
  * Captures process.exit if called.
  */
 export async function executeWithExitCapture(
-  fn: () => Promise<void> | void
+  fn: () => Promise<void> | void,
 ): Promise<{ exited: boolean; exitCode?: number; error?: Error }> {
   try {
     await fn();
