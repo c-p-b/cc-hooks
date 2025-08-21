@@ -1,0 +1,12 @@
+{
+  "name": "eslint-autofix",
+  "command": ["npx", "eslint", "."],
+  "description": "Run ESLint",
+  "events": ["PostToolUse"],
+  "outputFormat": "text",
+  "exitCodeMap": {
+    "0": "success",
+    "default": "non-blocking-error"
+  },
+  "message": "ESLint errors"
+}

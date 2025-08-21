@@ -1,0 +1,13 @@
+{
+  "name": "prettier-format",
+  "command": ["npx", "prettier", "--check", "."],
+  "description": "Check Prettier formatting",
+  "events": ["Stop"],
+  "outputFormat": "text",
+  "exitCodeMap": {
+    "0": "success",
+    "1": "blocking-error",
+    "default": "blocking-error"
+  },
+  "message": "Code is not formatted"
+}

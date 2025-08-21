@@ -1,0 +1,12 @@
+{
+  "name": "python-lint",
+  "command": ["ruff", "check", "."],
+  "description": "Run ruff check on Python files",
+  "events": ["PostToolUse"],
+  "outputFormat": "text",
+  "exitCodeMap": {
+    "0": "success",
+    "default": "non-blocking-error"
+  },
+  "message": "Ruff found issues"
+}

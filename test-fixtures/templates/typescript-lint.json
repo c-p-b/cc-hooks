@@ -1,0 +1,13 @@
+{
+  "name": "typescript-lint",
+  "command": ["npx", "eslint", "--max-warnings", "0", "."],
+  "description": "Run ESLint on TypeScript files after edits",
+  "events": ["PostToolUse"],
+  "outputFormat": "text",
+  "exitCodeMap": {
+    "0": "success",
+    "1": "blocking-error",
+    "default": "non-blocking-error"
+  },
+  "message": "ESLint found issues"
+}

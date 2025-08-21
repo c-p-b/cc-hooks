@@ -128,7 +128,23 @@ export class InstallCommand {
     name: string,
   ): Promise<HookDefinition | HookDefinition[] | null> {
     try {
-      const templatesDir = path.join(__dirname, '..', '..', 'templates');
+      // Use test fixtures when running tests
+      let templatesDir = path.join(__dirname, '..', '..', 'templates');
+      
+      if (process.env.NODE_ENV === 'test') {
+        // Check for test fixtures relative to project root
+        // When running with ts-jest, __dirname could be either src/commands or dist/commands
+        const possiblePaths = [
+          path.join(__dirname, '..', '..', 'test-fixtures', 'templates'), // from dist or src
+        ];
+        
+        for (const testFixturesPath of possiblePaths) {
+          if (fs.existsSync(testFixturesPath)) {
+            templatesDir = testFixturesPath;
+            break;
+          }
+        }
+      }
 
       // First check if it's a directory (bundle)
       const bundlePath = path.join(templatesDir, name);
@@ -183,6 +199,10 @@ export class InstallCommand {
       // Validate the hook definition
       return this.validateHookDefinition(hookDef);
     } catch (error) {
+      // In test mode, fail loudly so we catch broken fixtures
+      if (process.env.NODE_ENV === 'test') {
+        throw error;
+      }
       this.logger.log(`Failed to load built-in template ${name}: ${error}`);
       return null;
     }
