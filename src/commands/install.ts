@@ -130,14 +130,14 @@ export class InstallCommand {
     try {
       // Use test fixtures when running tests
       let templatesDir = path.join(__dirname, '..', '..', 'templates');
-      
+
       if (process.env.NODE_ENV === 'test') {
         // Check for test fixtures relative to project root
         // When running with ts-jest, __dirname could be either src/commands or dist/commands
         const possiblePaths = [
           path.join(__dirname, '..', '..', 'test-fixtures', 'templates'), // from dist or src
         ];
-        
+
         for (const testFixturesPath of possiblePaths) {
           if (fs.existsSync(testFixturesPath)) {
             templatesDir = testFixturesPath;
