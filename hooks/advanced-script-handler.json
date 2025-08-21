@@ -1,0 +1,13 @@
+{
+  "name": "advanced-script-handler",
+  "description": "Advanced script queue with parameters, conditions, and chaining support",
+  "command": [
+    "node",
+    "-e",
+    "const fs=require('fs');const path=require('path');const cp=require('child_process');let data='';process.stdin.setEncoding('utf8');process.stdin.on('data',c=>data+=c);process.stdin.on('end',()=>{try{const ev=JSON.parse(data);const p=ev.prompt||'';const root=process.env.CLAUDE_PROJECT_DIR||process.cwd();const queueDir=path.join(root,'.claude','script-queue');fs.mkdirSync(queueDir,{recursive:true});const patterns=[/-s\\s+([\\w\\-\\.]+)(?:\\[([^\\]]*)\\])?/g,/-script\\s+([\\w\\-\\.]+)(?:\\[([^\\]]*)\\])?/g,/-after\\s+([\\w\\-\\.]+)(?:\\[([^\\]]*)\\])?/g,/-chain\\s+\\{([^}]+)\\}/g];let hasScripts=false;let cleanPrompt=p;const queue=[];patterns.forEach(pattern=>{const matches=[...cleanPrompt.matchAll(pattern)];matches.forEach(m=>{hasScripts=true;if(m[0].startsWith('-chain')){const chain=m[1].split(',').map(s=>s.trim());chain.forEach((script,idx)=>{queue.push({script:script,params:'',chain:true,chainIndex:idx,chainTotal:chain.length,condition:'always',timestamp:Date.now()});});}else{const scriptName=m[1];const params=m[2]||'';let condition='always';if(m[0].startsWith('-after'))condition='on-success';queue.push({script:scriptName,params:params,chain:false,condition:condition,timestamp:Date.now()});}});cleanPrompt=cleanPrompt.replace(pattern,'');});if(hasScripts){const queueFile=path.join(queueDir,'advanced-queue.json');let existing=[];try{existing=JSON.parse(fs.readFileSync(queueFile,'utf8'));}catch(e){}const merged=[...existing,...queue];fs.writeFileSync(queueFile,JSON.stringify(merged,null,2));const summary=queue.map(q=>`${q.script}${q.params?`[${q.params}]`:''}`).join(', ');const features=[];if(queue.some(q=>q.chain))features.push('chained execution');if(queue.some(q=>q.params))features.push('with parameters');if(queue.some(q=>q.condition!=='always'))features.push('conditional');const featureStr=features.length?' ('+features.join(', ')+')':'';const out={decision:'continue',prompt:cleanPrompt.trim(),message:`📋 Queued: ${summary}${featureStr}`};process.stdout.write(JSON.stringify(out));}process.exit(0);}catch(err){console.error(err);process.exit(0)}});"
+  ],
+  "events": ["UserPromptSubmit"],
+  "priority": 5,
+  "outputFormat": "structured",
+  "timeout": 5
+}

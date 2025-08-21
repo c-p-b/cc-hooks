@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>cc-hooks • Hooks that make Claude Code safer and happier</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="description" content="cc-hooks is a universal, stable, and developer-friendly hook orchestrator for Claude Code." />
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #0f1530;
+      --text: #e8eef9;
+      --muted: #b7c3d7;
+      --brand: #7cc4ff;
+      --brand-2: #9bf2c4;
+      --accent: #ffdf6d;
+      --danger: #ff8da1;
+      --ok: #98f5a9;
+      --border: rgba(255,255,255,0.08);
+      --code-bg: rgba(255,255,255,0.06);
+      --shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f9fbff;
+        --panel: #ffffff;
+        --text: #0f1a2b;
+        --muted: #4c5a73;
+        --brand: #0068ff;
+        --brand-2: #00a56a;
+        --accent: #b38700;
+        --danger: #b02a3a;
+        --ok: #147d41;
+        --border: rgba(0,0,0,0.08);
+        --code-bg: #f3f6fb;
+        --shadow: 0 10px 30px rgba(0,0,0,0.08);
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji; }
+    a { color: var(--brand); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .container { max-width: 1040px; margin: 0 auto; padding: 24px; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 0; }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; letter-spacing: 0.2px; }
+    .logo {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: radial-gradient(120% 140% at 0% 100%, var(--brand) 0%, var(--brand-2) 60%, transparent 60%), radial-gradient(130% 140% at 100% 0%, var(--accent) 0%, transparent 60%), linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.02));
+      box-shadow: inset 0 0 0 1px var(--border), var(--shadow);
+    }
+    nav { display: flex; gap: 18px; }
+    nav a { color: var(--muted); font-weight: 600; }
+    .hero {
+      display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 24px; align-items: center;
+      padding: 36px 0 8px;
+    }
+    .hero h1 { margin: 0 0 8px; font-size: clamp(28px, 5vw, 44px); line-height: 1.08; letter-spacing: -0.02em; }
+    .subtitle { color: var(--muted); font-size: 17px; margin: 0 0 18px; }
+    .cta { display: flex; flex-wrap: wrap; gap: 12px; margin: 18px 0 0; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--brand); color: white; border: 0; border-radius: 10px;
+      padding: 12px 16px; font-weight: 700; letter-spacing: 0.2px; box-shadow: var(--shadow);
+      cursor: pointer;
+    }
+    .btn.secondary { background: transparent; color: var(--brand); border: 1px solid var(--brand); }
+    .panel {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow);
+      padding: 16px; overflow: hidden;
+    }
+    .code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 14px; color: var(--text); position: relative; }
+    .code .copy { position: absolute; top: 8px; right: 8px; background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 6px 10px; border-radius: 8px; cursor: pointer; }
+    .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    h2 { margin: 34px 0 12px; font-size: 22px; letter-spacing: -0.01em; }
+    h3 { margin: 12px 0 8px; font-size: 18px; letter-spacing: -0.01em; }
+    ul { margin: 8px 0 0 18px; padding: 0; }
+    li { margin: 6px 0; color: var(--muted); }
+    .badge { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--muted); }
+    .kv { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; }
+    .note { color: var(--muted); font-size: 14px; }
+    .pill { display: inline-block; padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 13px; }
+    .footer { color: var(--muted); font-size: 14px; padding: 32px 0; border-top: 1px solid var(--border); margin-top: 40px; }
+    .ok { color: var(--ok); font-weight: 700; }
+    .warn { color: var(--accent); font-weight: 700; }
+    .err { color: var(--danger); font-weight: 700; }
+
+    /* New: ensure long commands in code blocks wrap nicely */
+    .code pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin: 0;
+    }
+
+    /* New: ensure code content wraps around the copy button */
+    .code {
+      padding-right: 56px; /* reserve space so text doesn’t hide under the copy button */
+    }
+    .code .copy {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 28px;
+      padding: 0; /* icon-only button */
+      border: 1px solid var(--border);
+      color: var(--muted);
+      background: transparent;
+      transition: color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.08s ease;
+    }
+    .code .copy svg {
+      width: 16px;
+      height: 16px;
+      pointer-events: none;
+      fill: currentColor; /* Use themed color instead of black */
+    }
+    .code .copy svg * {
+      fill: currentColor; /* Ensure inner shapes (rect) follow currentColor */
+    }
+    .code .copy:hover {
+      color: var(--text);
+      border-color: var(--border);
+    }
+    .code .copy.copied {
+      color: var(--ok);                /* Visual verification (no text change) */
+      border-color: var(--ok);
+      box-shadow: 0 0 0 2px rgba(152, 245, 169, 0.25);
+      transform: scale(0.96);
+    }
+
+    /* New: better-designed events list as chips */
+    .kv-events {
+      grid-template-columns: 1fr;
+      align-items: start;
+    }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1;
+      background: transparent;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 860px) { .hero { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>cc-hooks</div>
+      </div>
+      <nav>
+        <a href="#install">Install</a>
+        <a href="#quickstart">Quick start</a>
+        <a href="#features">Features</a>
+        <a href="#demo">Demo</a>
+        <a href="https://www.npmjs.com/package/cc-hooks" target="_blank" rel="noreferrer">npm</a>
+        <a href="../README.md">GitHub</a>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <div>
+        <h1>Hooks that make Claude Code safer and happier</h1>
+        <p class="subtitle">Install once. Add language or policy templates in seconds. Get reliable automation with clear feedback and logs—without surprises.</p>
+        <div class="cta">
+          <a class="btn" href="#install">Install cc-hooks</a>
+          <a class="btn secondary" href="#quickstart">See quick start</a>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="kv kv-events">
+          <div class="badge">Runs on Claude Code events</div>
+          <div class="chips" aria-label="Claude Code hook events">
+            <span class="chip">PreToolUse</span>
+            <span class="chip">PostToolUse</span>
+            <span class="chip">Notification</span>
+            <span class="chip">UserPromptSubmit</span>
+            <span class="chip">Stop</span>
+            <span class="chip">SubagentStop</span>
+            <span class="chip">PreCompact</span>
+            <span class="chip">SessionStart</span>
+          </div>
+        </div>
+        <div style="height: 10px"></div>
+        <div class="code">
+          <button class="copy" data-copy="npm install -g cc-hooks" aria-label="Copy command" title="Copy">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="9" y="9" width="10" height="10" rx="2" ry="2"></rect>
+              <rect x="5" y="5" width="10" height="10" rx="2" ry="2"></rect>
+            </svg>
+          </button>
+          <pre>npm install -g cc-hooks</pre>
+        </div>
+        <div style="height: 8px"></div>
+        <div class="code">
+          <button class="copy" data-copy="cc-hooks init && cc-hooks install typescript-lint" aria-label="Copy command" title="Copy">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="9" y="9" width="10" height="10" rx="2" ry="2"></rect>
+              <rect x="5" y="5" width="10" height="10" rx="2" ry="2"></rect>
+            </svg>
+          </button>
+          <pre>cc-hooks init &&<wbr> cc-hooks install typescript-lint</pre>
+        </div>
+        <p class="note" style="margin-top: 8px">Works on macOS and Linux. Windows users: use WSL/WSL2.</p>
+      </div>
+    </section>
+
+    <section id="install">
+      <h2>Install</h2>
+      <div class="grid">
+        <div class="panel">
+          <h3>Global install</h3>
+          <div class="code">
+            <button class="copy" data-copy="npm install -g cc-hooks" aria-label="Copy command" title="Copy">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="9" y="9" width="10" height="10" rx="2" ry="2"></rect>
+                <rect x="5" y="5" width="10" height="10" rx="2" ry="2"></rect>
+              </svg>
+            </button>
+            <pre>npm install -g cc-hooks</pre>
+          </div>
+          <ul>
+            <li>Requires Node.js 18, 20, or 22</li>
+            <li class="note">Binary: <code>cc-hooks</code></li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>Initialize in a project</h3>
+          <div class="code">
+            <button class="copy" data-copy="cc-hooks init" aria-label="Copy command" title="Copy">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="9" y="9" width="10" height="10" rx="2" ry="2"></rect>
+                <rect x="5" y="5" width="10" height="10" rx="2" ry="2"></rect>
+              </svg>
+            </button>
+            <pre>cc-hooks init</pre>
+          </div>
+          <ul>
+            <li>Bootstraps all supported events in your Claude settings</li>
+            <li>Backs up existing settings, hints at vanilla hooks</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>Install a template</h3>
+          <div class="code">
+            <button class="copy" data-copy="cc-hooks install typescript-lint" aria-label="Copy command" title="Copy">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="9" y="9" width="10" height="10" rx="2" ry="2"></rect>
+                <rect x="5" y="5" width="10" height="10" rx="2" ry="2"></rect>
+              </svg>
+            </button>
+            <pre>cc-hooks<wbr> install typescript-lint</pre>
+          </div>
+          <ul>
+            <li>Also available: <code>typescript-format</code>, <code>python-lint</code>, <code>session-context</code>, <code>git-commit-msg</code></li>
+            <li>Supports local JSON files and Git sources</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="quickstart">
+      <h2>Quick start</h2>
+      <div class="grid">
+        <div class="panel">
+          <h3>1. Initialize</h3>
+          <div class="code"><pre>cc-hooks init</pre></div>
+          <p class="note">Adds the orchestrator to your Claude settings across all events.</p>
+        </div>
+        <div class="panel">
+          <h3>2. Add a few hooks</h3>
+          <div class="code"><pre>cc-hooks install typescript-lint
+cc-hooks install typescript-format
+cc-hooks install python-lint
+cc-hooks install session-context
+cc-hooks install git-commit-msg</pre></div>
+          <p class="note">Templates live in the package under <code>templates/</code> for easy discovery.</p>
+        </div>
+        <div class="panel">
+          <h3>3. See what’s configured</h3>
+          <div class="code"><pre>cc-hooks show --verbose</pre></div>
+          <p class="note">Shows events, commands, timeouts, and priorities. Bundles are grouped automatically when present.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
+      <h2>Why developers like cc-hooks</h2>
+      <div class="grid">
+        <div class="panel">
+          <h3>Two tiers, simple by default</h3>
+          <ul>
+            <li><span class="ok">Text hooks</span> map exit codes to flow control (0=success, 2=block, others=warn)</li>
+            <li><span class="ok">Structured hooks</span> return JSON for approvals, blocks, and diagnostics</li>
+            <li>Clear user messages and optional fix instructions</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>Reliable execution</h3>
+          <ul>
+            <li>Per-hook timeout with gentle SIGTERM then SIGKILL</li>
+            <li>1MB output cap with instant kill on overflow</li>
+            <li>Process groups on Unix to avoid zombies</li>
+            <li>Session JSONL logs with rotation and cleanup</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>Developer ergonomics</h3>
+          <ul>
+            <li><code>cc-hooks logs</code> for quick visibility (filter, tail)</li>
+            <li>Priority sorting and matchers per tool/event</li>
+            <li><code>CC_HOOKS_DEBUG</code> for deep diagnostics</li>
+            <li>Windows gated to WSL with clear guidance</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="demo">
+      <h2>Mini demo you can run</h2>
+      <div class="grid">
+        <div class="panel">
+          <h3>Format & lint (PostToolUse)</h3>
+          <div class="code"><pre>printf 'export const x=[1,2,3]\n' > demo.ts
+echo '{"session_id":"demo","transcript_path":"/tmp/demo.jsonl","cwd":"'"$(pwd)"'","hook_event_name":"PostToolUse","tool_name":"Write","tool_input":{"file_path":"demo.ts"}}' | cc-hooks run</pre></div>
+          <ul>
+            <li><code>typescript-format</code> blocks on Prettier issues</li>
+            <li><code>typescript-lint</code> reports non-blocking warnings</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>Session context (SessionStart)</h3>
+          <div class="code"><pre>echo '{"session_id":"demo","transcript_path":"/tmp/demo.jsonl","cwd":"'"$(pwd)"'","hook_event_name":"SessionStart","source":"startup"}' | cc-hooks run</pre></div>
+          <p class="note"><code>session-context</code> prints git status and recent commits (becomes context)</p>
+        </div>
+        <div class="panel">
+          <h3>Commit policy (Stop)</h3>
+          <div class="code"><pre>git add -A && git commit -m "bad message"
+echo '{"session_id":"demo","transcript_path":"/tmp/demo.jsonl","cwd":"'"$(pwd)"'","hook_event_name":"Stop"}' | cc-hooks run</pre></div>
+          <p class="note"><code>git-commit-msg</code> blocks non-conventional messages and suggests a fix</p>
+        </div>
+      </div>
+      <p class="note">Keep <code>cc-hooks logs -f</code> running in another terminal to watch results in real time.</p>
+    </section>
+
+    <section id="custom">
+      <h2>Make your own hook (text)</h2>
+      <div class="panel">
+        <p class="note">Create <code>my-hook.json</code> in your project:</p>
+        <div class="code"><pre>{
+  "name": "my-guardrail",
+  "description": "Block TODOs in user prompts",
+  "command": ["sh", "-c", "jq -er '.prompt|test(\"TODO\")|not' > /dev/null || { echo 'Prompt contains TODO – please remove it' 1>&2; exit 2; }"],
+  "events": ["UserPromptSubmit"],
+  "outputFormat": "text",
+  "exitCodeMap": { "0": "success", "2": "blocking-error", "default": "non-blocking-error" },
+  "message": "Prompt check failed",
+  "timeout": 10
+}</pre></div>
+        <div class="code"><pre>cc-hooks install ./my-hook.json
+cc-hooks show --verbose</pre></div>
+        <p class="note">Prefer structured hooks for richer decisions and diagnostics (see <code>HOOKS_REFERENCE.md</code>).</p>
+      </div>
+    </section>
+
+    <section id="how">
+      <h2>How it works</h2>
+      <div class="grid">
+        <div class="panel">
+          <h3>Pipeline</h3>
+          <ul>
+            <li>Claude sends a JSON event → <code>cc-hooks run</code> reads stdin</li>
+            <li>Config resolved (global → project → local), then filtered by event/matcher</li>
+            <li>Hooks run in parallel with resource limits</li>
+            <li>Result mapped to success / warn / block with clear output</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>Observability</h3>
+          <ul>
+            <li>Per-session JSONL logs with duration, exit code, severity</li>
+            <li>Rotation and cleanup keep disk usage bounded</li>
+            <li><code>cc-hooks logs</code> to view, filter, or tail</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>Templates included today</h3>
+          <ul>
+            <li><code>typescript-lint</code> — ESLint on TS</li>
+            <li><code>typescript-format</code> — Prettier check</li>
+            <li><code>python-lint</code> — Ruff</li>
+            <li><code>session-context</code> — Git status at session start</li>
+            <li><code>git-commit-msg</code> — Conventional commits</li>
+          </ul>
+        </div>
+      </div>
+      <p class="note">Want installers for your team? Add JSON files under <code>templates/</code> or publish a Git repo with a <code>hook.json</code>.</p>
+    </section>
+
+    <section id="safety">
+      <h2>Safety notes</h2>
+      <div class="panel">
+        <ul>
+          <li>Hooks run your commands. Review templates and scripts before installing.</li>
+          <li>Use absolute paths and <code>$CLAUDE_PROJECT_DIR</code> for reliability.</li>
+          <li>Respect secrets: avoid dumping env or keys to logs/stdout.</li>
+          <li>On Windows, use WSL/WSL2 for now.</li>
+        </ul>
+        <p class="note">See the full reference and best practices in <a href="../HOOKS_REFERENCE.md">HOOKS_REFERENCE.md</a>.</p>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div>Made for developers who love fast feedback loops. Try <code>cc-hooks init</code> and add a template in under a minute.</div>
+    </footer>
+  </div>
+
+  <script>
+    // Copy-to-clipboard buttons
+    document.addEventListener('click', function(e) {
+      const btn = e.target.closest('.copy');
+      if (!btn) return;
+      const text = btn.getAttribute('data-copy');
+      if (!text) return;
+      navigator.clipboard.writeText(text).then(() => {
+        btn.classList.add('copied');            // Visual confirmation via CSS (no text change)
+        setTimeout(() => { btn.classList.remove('copied'); }, 450);
+      });
+    });
+  </script>
+</body>
+</html>

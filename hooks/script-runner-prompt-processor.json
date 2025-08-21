@@ -1,0 +1,13 @@
+{
+  "name": "script-runner-prompt-processor",
+  "description": "Detects -s [scriptname] in prompts, removes it, and queues script for execution",
+  "command": [
+    "node",
+    "-e",
+    "const fs=require('fs');const path=require('path');let data='';process.stdin.setEncoding('utf8');process.stdin.on('data',c=>data+=c);process.stdin.on('end',()=>{try{const ev=JSON.parse(data);const prompt=ev.prompt||'';const match=prompt.match(/\\s*-s\\s+(\\S+)\\s*/);if(match){const scriptName=match[1];const cleanPrompt=prompt.replace(match[0],' ').trim();const root=process.env.CLAUDE_PROJECT_DIR||process.cwd();const queueDir=path.join(root,'.claude','script-queue');fs.mkdirSync(queueDir,{recursive:true});const queueFile=path.join(queueDir,'pending.json');let queue=[];try{queue=JSON.parse(fs.readFileSync(queueFile,'utf8'));}catch(e){}queue.push({script:scriptName,timestamp:Date.now(),session:ev.session_id||'unknown'});fs.writeFileSync(queueFile,JSON.stringify(queue,null,2));const out={decision:'continue',prompt:cleanPrompt,context:`Queued script '${scriptName}' for execution after this task completes.`};process.stdout.write(JSON.stringify(out));process.exit(0);}else{process.exit(0);}}catch(e){process.exit(0);}});"
+  ],
+  "events": ["UserPromptSubmit"],
+  "priority": 10,
+  "outputFormat": "structured",
+  "timeout": 5
+}
