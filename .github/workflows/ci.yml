@@ -202,35 +202,34 @@ jobs:
           
           git push origin main --follow-tags
       
-      # COMMENTED OUT FOR NOW - Uncomment when ready to publish
-      # - name: Publish to NPM
-      #   if: steps.version.outputs.should_release == 'true'
-      #   run: npm publish --provenance --access public
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish to NPM
+        if: steps.version.outputs.should_release == 'true'
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       
-      # - name: Create GitHub Release
-      #   if: steps.version.outputs.should_release == 'true'
-      #   uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
-      #   with:
-      #     script: |
-      #       const version = '${{ steps.version.outputs.version }}';
-      #       const changelog = require('fs').readFileSync('CHANGELOG.md', 'utf8');
-      #       
-      #       // Extract latest version's changes
-      #       const versionHeader = `## [${version}]`;
-      #       const startIdx = changelog.indexOf(versionHeader);
-      #       let endIdx = changelog.indexOf('\n## [', startIdx + 1);
-      #       if (endIdx === -1) endIdx = changelog.length;
-      #       
-      #       const releaseNotes = changelog.substring(startIdx, endIdx).trim();
-      #       
-      #       await github.rest.repos.createRelease({
-      #         owner: context.repo.owner,
-      #         repo: context.repo.repo,
-      #         tag_name: `v${version}`,
-      #         name: `Release v${version}`,
-      #         body: releaseNotes,
-      #         draft: false,
-      #         prerelease: false
-      #       });
+      - name: Create GitHub Release
+        if: steps.version.outputs.should_release == 'true'
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const version = '${{ steps.version.outputs.version }}';
+            const changelog = require('fs').readFileSync('CHANGELOG.md', 'utf8');
+            
+            // Extract latest version's changes
+            const versionHeader = `## [${version}]`;
+            const startIdx = changelog.indexOf(versionHeader);
+            let endIdx = changelog.indexOf('\n## [', startIdx + 1);
+            if (endIdx === -1) endIdx = changelog.length;
+            
+            const releaseNotes = changelog.substring(startIdx, endIdx).trim();
+            
+            await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: `v${version}`,
+              name: `Release v${version}`,
+              body: releaseNotes,
+              draft: false,
+              prerelease: false
+            });
