@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.6] - 2025-08-21
+
+### Bug Fixes
+- clean up templated hooks
+
 ## [0.1.5] - 2025-08-21
 
 ### Bug Fixes
