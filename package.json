@@ -39,6 +39,14 @@
   ],
   "author": "",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/c-p-b/cc-hooks"
+  },
+  "bugs": {
+    "url": "https://github.com/c-p-b/cc-hooks/issues"
+  },
+  "homepage": "https://github.com/c-p-b/cc-hooks#readme",
   "dependencies": {
     "chalk": "^4.1.2",
     "commander": "^14.0.0"
