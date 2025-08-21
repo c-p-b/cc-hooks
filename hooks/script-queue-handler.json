@@ -1,0 +1,13 @@
+{
+  "name": "script-queue-handler",
+  "description": "Detects -s [scriptname] in prompts and queues scripts for execution after Claude finishes",
+  "command": [
+    "node",
+    "-e",
+    "const fs=require('fs');const path=require('path');let data='';process.stdin.setEncoding('utf8');process.stdin.on('data',c=>data+=c);process.stdin.on('end',()=>{try{const ev=JSON.parse(data);const p=ev.prompt||'';const scriptPattern=/-s\\s+([\\w\\-\\.]+)(?:\\s+|$)/g;const matches=[...p.matchAll(scriptPattern)];if(matches.length>0){const root=process.env.CLAUDE_PROJECT_DIR||process.cwd();const queueDir=path.join(root,'.claude','script-queue');fs.mkdirSync(queueDir,{recursive:true});const queueFile=path.join(queueDir,'pending.json');let queue=[];try{queue=JSON.parse(fs.readFileSync(queueFile,'utf8'));}catch(e){}matches.forEach(m=>{const scriptName=m[1];queue.push({script:scriptName,timestamp:Date.now(),sessionId:ev.session_id||'unknown'});});fs.writeFileSync(queueFile,JSON.stringify(queue,null,2));const cleanPrompt=p.replace(scriptPattern,'').trim();const out={decision:'continue',prompt:cleanPrompt,message:`Queued ${matches.length} script(s) for execution after task completion: ${matches.map(m=>m[1]).join(', ')}`};process.stdout.write(JSON.stringify(out));process.exit(0);}else{process.exit(0);}}catch(err){process.exit(0)}});"
+  ],
+  "events": ["UserPromptSubmit"],
+  "priority": 10,
+  "outputFormat": "structured",
+  "timeout": 5
+}

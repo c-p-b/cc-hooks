@@ -77,22 +77,11 @@ describe('Test Command - Integration', () => {
     (execSync as jest.Mock).mockReturnValue('');
 
     // Mock console to capture output
-    const consoleSpy = jest.spyOn(console, 'log');
+    const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
 
-    // Mock process.exit to prevent test from exiting
-    const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('process.exit called');
-    });
-
-    // Run tests
+    // Run tests (won't call process.exit in test mode)
     const testCommand = new TestCommand(tempDir);
-
-    try {
-      await testCommand.execute('Stop.json');
-    } catch (e: any) {
-      // Expected - process.exit was called
-      expect(e.message).toBe('process.exit called');
-    }
+    await testCommand.execute('Stop.json');
 
     // Should have logged test execution
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Testing: Stop.json'));
@@ -107,11 +96,10 @@ describe('Test Command - Integration', () => {
       }),
     );
 
-    // Should exit with 0 (success)
-    expect(processExitSpy).toHaveBeenCalledWith(0);
+    // Should show success
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('✓'));
 
     consoleSpy.mockRestore();
-    processExitSpy.mockRestore();
   });
 
   it('should handle timeout correctly', async () => {
@@ -147,21 +135,15 @@ describe('Test Command - Integration', () => {
       throw timeoutError;
     });
 
+    const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
     const testCommand = new TestCommand(tempDir);
 
-    // This should timeout and exit with code 1
-    const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('process.exit called');
-    });
+    // This should timeout (won't call process.exit in test mode)
+    await testCommand.execute('Stop.json');
 
-    try {
-      await testCommand.execute('Stop.json');
-    } catch (e: any) {
-      expect(e.message).toBe('process.exit called');
-    }
+    // Should show failure
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('✗ Failed'));
 
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-
-    processExitSpy.mockRestore();
+    consoleSpy.mockRestore();
   });
 });

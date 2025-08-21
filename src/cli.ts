@@ -150,6 +150,8 @@ program
   .option('--failed', 'show failed hooks only')
   .option('-n, --limit <number>', 'number of entries to show', '20')
   .option('-v, --verbose', 'show detailed information')
+  .option('-d, --details', 'show detailed info including output snippets')
+  .option('--stats', 'show summary statistics')
   .action(async (hookName, options) => {
     try {
       const { LogsCommand } = await import('./commands/logs');
@@ -160,6 +162,8 @@ program
         failed: options.failed,
         limit: parseInt(options.limit, 10),
         verbose: options.verbose,
+        details: options.details,
+        stats: options.stats,
       });
     } catch (error) {
       handleError(error);

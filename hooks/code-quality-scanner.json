@@ -1,0 +1,13 @@
+{
+  "name": "code-quality-scanner",
+  "description": "Scans recent changes for TODOs, mocks, compatibility patterns and provides actionable feedback",
+  "command": [
+    "node",
+    "-e",
+    "const {execSync}=require('child_process');const patterns={todo:['TODO','FIXME','HACK','XXX','TEMP','temporary','workaround','kludge'],mock:['mock','stub','fake','dummy','placeholder','test.double'],compat:['compat','backward','legacy','deprecated','fallback','polyfill','shim'],incomplete:['not.implemented','unimplemented','noop','no-?op','pass.through','passthrough'],future:['future','pending','later','eventually','soon']};let data='';process.stdin.setEncoding('utf8');process.stdin.on('data',c=>data+=c);process.stdin.on('end',()=>{try{const event=JSON.parse(data);if(!event.file_path||!event.file_path.match(/\\.(js|ts|jsx|tsx|py|go|java|c|cpp|rs|rb|php|swift|kt|scala)$/))return process.exit(0);const file=event.file_path;let content='';try{content=execSync(`git diff HEAD -- \"${file}\" 2>/dev/null || git diff -- \"${file}\" 2>/dev/null || cat \"${file}\" 2>/dev/null | head -100`,{encoding:'utf8',maxBuffer:1024*100}).toString();}catch(e){return process.exit(0);}const found={};let totalCount=0;for(const[category,terms]of Object.entries(patterns)){const regex=new RegExp(`(${terms.join('|')})`,`gi`);const matches=content.match(regex);if(matches){found[category]=(found[category]||0)+matches.length;totalCount+=matches.length;}}if(totalCount>0){const categories=Object.keys(found);let priority='info';let message='Code patterns detected in '+file;if(found.todo>0){priority='warning';message=`Found ${found.todo} TODO/FIXME markers in ${file}`;}else if(found.incomplete>0){priority='warning';message=`Found ${found.incomplete} unimplemented sections in ${file}`;}else if(found.mock>0){priority='info';message=`Found ${found.mock} mock/stub patterns in ${file}`;}const suggestions=[];if(found.todo)suggestions.push('Consider addressing TODO/FIXME items');if(found.mock)suggestions.push('Verify mocks are only in test files');if(found.compat)suggestions.push('Document compatibility requirements');if(found.incomplete)suggestions.push('Implement placeholder functionality');const output={decision:'continue',priority:priority,message:message,details:{file:file,patterns:found,total:totalCount,suggestions:suggestions}};process.stdout.write(JSON.stringify(output));}}catch(err){process.exit(0)}});"
+  ],
+  "events": ["PostToolUse"],
+  "priority": 100,
+  "outputFormat": "structured",
+  "timeout": 5
+}

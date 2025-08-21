@@ -1,0 +1,17 @@
+{
+  "name": "precompact-save-last-200-lines",
+  "description": "Before compaction, save the last 200 lines of the transcript to .claude/snapshots",
+  "command": [
+    "node",
+    "-e",
+    "const fs=require('fs');const os=require('os');const path=require('path');let data='';process.stdin.setEncoding('utf8');process.stdin.on('data',c=>data+=c);process.stdin.on('end',()=>{try{const ev=JSON.parse(data);let t=ev.transcript_path||'';if(!t){console.error('No transcript_path in event');process.exit(1);}if(t.startsWith('~')){t=path.join(os.homedir(), t.slice(1));}if(!fs.existsSync(t)){console.error('Transcript not found: '+t);process.exit(1);}const content=fs.readFileSync(t,'utf8');const lines=content.split('\\n');const tail=lines.slice(-200).join('\\n');const root=process.env.CLAUDE_PROJECT_DIR||process.cwd();const outDir=path.join(root,'.claude','snapshots');fs.mkdirSync(outDir,{recursive:true});const outFile=path.join(outDir,'context-before-compact-'+Date.now()+'.txt');fs.writeFileSync(outFile, tail,'utf8');console.log('Saved transcript tail to '+outFile);process.exit(0);}catch(e){console.error('Error: '+e.message);process.exit(1);}});"
+  ],
+  "events": ["PreCompact"],
+  "outputFormat": "text",
+  "exitCodeMap": {
+    "0": "success",
+    "default": "non-blocking-error"
+  },
+  "message": "Failed to save transcript tail before compaction",
+  "timeout": 10
+}

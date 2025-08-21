@@ -284,6 +284,8 @@ export class ConfigLoader {
       if (typeof hook.timeout !== 'number' || hook.timeout <= 0) {
         throw new Error('timeout must be a positive number (in seconds)');
       }
+      // Convert seconds to milliseconds
+      hook.timeout = hook.timeout * 1000;
     }
 
     // Type-specific validation
@@ -323,7 +325,7 @@ export class ConfigLoader {
       events: hook.events,
       matcher: hook.matcher,
       priority: hook.priority,
-      timeout: hook.timeout ? hook.timeout * 1000 : undefined, // Convert seconds to milliseconds
+      timeout: hook.timeout, // Converted to milliseconds in validateHook
       outputFormat: 'text',
       exitCodeMap: hook.exitCodeMap,
       message: hook.message,
@@ -339,7 +341,7 @@ export class ConfigLoader {
       events: hook.events,
       matcher: hook.matcher,
       priority: hook.priority,
-      timeout: hook.timeout ? hook.timeout * 1000 : undefined, // Convert seconds to milliseconds
+      timeout: hook.timeout, // Converted to milliseconds in validateHook
       outputFormat: 'structured',
     };
   }

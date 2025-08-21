@@ -1,6 +1,5 @@
 import { HookExecutor } from '../../../src/orchestrator/executor';
 import { TextHook, ClaudeHookEvent } from '../../../src/common/types';
-import { promises as fs } from 'fs';
 import { spawn } from 'child_process';
 import { EventEmitter } from 'events';
 import { Writable, Readable } from 'stream';
@@ -14,6 +13,8 @@ jest.mock('fs', () => ({
     mkdir: jest.fn(),
     appendFile: jest.fn(),
   },
+  mkdirSync: jest.fn(),
+  appendFileSync: jest.fn(),
 }));
 
 // Mock LogCleaner
@@ -95,8 +96,9 @@ describe('HookExecutor', () => {
       const mockProcess = new MockChildProcess();
       mockSpawn.mockReturnValue(mockProcess);
 
-      const mkdirMock = fs.mkdir as jest.Mock;
-      const appendFileMock = fs.appendFile as jest.Mock;
+      const fsModule = require('fs');
+      const mkdirMock = fsModule.mkdirSync as jest.Mock;
+      const appendFileMock = fsModule.appendFileSync as jest.Mock;
 
       mkdirMock.mockResolvedValue(undefined);
       appendFileMock.mockResolvedValue(undefined);
@@ -116,8 +118,7 @@ describe('HookExecutor', () => {
       expect(result.flowControl).toBe('success');
       expect(result.hook.name).toBe('test-hook');
 
-      // Wait for async logging
-      await new Promise((resolve) => setImmediate(resolve));
+      // Logging is now synchronous, no need to wait
 
       // Verify log file was created
       expect(mkdirMock).toHaveBeenCalledWith('/mock/sessions', { recursive: true });
@@ -147,7 +148,8 @@ describe('HookExecutor', () => {
       const mockProcess = new MockChildProcess();
       mockSpawn.mockReturnValue(mockProcess);
 
-      const appendFileMock = fs.appendFile as jest.Mock;
+      const fsModule = require('fs');
+      const appendFileMock = fsModule.appendFileSync as jest.Mock;
       appendFileMock.mockResolvedValue(undefined);
 
       const timeoutHook = { ...testHook, timeout: 50 };
@@ -161,8 +163,7 @@ describe('HookExecutor', () => {
 
       expect(result.timedOut).toBe(true);
 
-      // Wait for async logging
-      await new Promise((resolve) => setImmediate(resolve));
+      // Logging is now synchronous, no need to wait
 
       // Verify timeout was logged
       const logCall = appendFileMock.mock.calls[0][1];
@@ -175,7 +176,8 @@ describe('HookExecutor', () => {
       const mockProcess = new MockChildProcess();
       mockSpawn.mockReturnValue(mockProcess);
 
-      const appendFileMock = fs.appendFile as jest.Mock;
+      const fsModule = require('fs');
+      const appendFileMock = fsModule.appendFileSync as jest.Mock;
       appendFileMock.mockResolvedValue(undefined);
 
       // Simulate large output that exceeds limit
@@ -193,8 +195,7 @@ describe('HookExecutor', () => {
         resourceLimits: { maxOutputBytes: 100, timeoutMs: 30000 },
       });
 
-      // Wait for async logging
-      await new Promise((resolve) => setImmediate(resolve));
+      // Logging is now synchronous, no need to wait
 
       // Verify truncation was logged
       const logCall = appendFileMock.mock.calls[0]?.[1];
@@ -223,8 +224,11 @@ describe('HookExecutor', () => {
       const mockProcess = new MockChildProcess();
       mockSpawn.mockReturnValue(mockProcess);
 
-      const appendFileMock = fs.appendFile as jest.Mock;
-      appendFileMock.mockRejectedValue(new Error('Disk full'));
+      const fsModule = require('fs');
+      const appendFileMock = fsModule.appendFileSync as jest.Mock;
+      appendFileMock.mockImplementation(() => {
+        throw new Error('Disk full');
+      });
 
       setTimeout(() => {
         mockProcess.emit('close', 0, null);
@@ -245,7 +249,8 @@ describe('HookExecutor', () => {
 
       mockSpawn.mockReturnValueOnce(mockProcess1).mockReturnValueOnce(mockProcess2);
 
-      const appendFileMock = fs.appendFile as jest.Mock;
+      const fsModule = require('fs');
+      const appendFileMock = fsModule.appendFileSync as jest.Mock;
       appendFileMock.mockResolvedValue(undefined);
 
       const hook2 = { ...testHook, name: 'test-hook-2' };
@@ -259,8 +264,7 @@ describe('HookExecutor', () => {
 
       expect(results).toHaveLength(2);
 
-      // Wait for async logging
-      await new Promise((resolve) => setImmediate(resolve));
+      // Logging is now synchronous, no need to wait
 
       // Should have logged both executions
       expect(appendFileMock).toHaveBeenCalledTimes(2);

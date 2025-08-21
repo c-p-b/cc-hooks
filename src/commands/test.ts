@@ -76,8 +76,10 @@ export class TestCommand {
       console.log(chalk.gray(`  - ${results.skipped} skipped`));
     }
 
-    // Exit with appropriate code
-    process.exit(results.failed > 0 ? 1 : 0);
+    // Exit with appropriate code (only in production, not during tests)
+    if (process.env.NODE_ENV !== 'test') {
+      process.exit(results.failed > 0 ? 1 : 0);
+    }
   }
 
   private async runTestFile(
@@ -115,6 +117,9 @@ export class TestCommand {
           timeout: 65000, // 65s - slightly more than hook timeout
         });
 
+        // Check if stderr has content (non-blocking error)
+        // Since execSync doesn't give us stderr separately when it succeeds,
+        // we need to use a different approach
         console.log(chalk.green('  ✓ Passed'));
         results.passed++;
 
@@ -124,7 +129,7 @@ export class TestCommand {
             chalk.gray(
               output
                 .split('\n')
-                .map((l) => '    ' + l)
+                .map((l: string) => '    ' + l)
                 .join('\n'),
             ),
           );

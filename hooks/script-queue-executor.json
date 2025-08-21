@@ -1,0 +1,18 @@
+{
+  "name": "script-queue-executor",
+  "description": "Executes queued scripts after Claude finishes processing",
+  "command": [
+    "sh",
+    "-c",
+    "#!/bin/sh\n# Read the event to get session info\nread -r event_json\n\n# Get project root\nroot=\"${CLAUDE_PROJECT_DIR:-$(pwd)}\"\nqueue_file=\"$root/.claude/script-queue/pending.json\"\nscripts_dir=\"$root/.claude/scripts\"\nlog_file=\"$root/.claude/script-queue/execution.log\"\n\n# Check if queue file exists\nif [ ! -f \"$queue_file\" ]; then\n  exit 0\nfi\n\n# Read and process queue\nif command -v jq >/dev/null 2>&1; then\n  # Use jq if available for proper JSON parsing\n  scripts=$(jq -r '.[] | .script' \"$queue_file\" 2>/dev/null)\n  if [ -n \"$scripts\" ]; then\n    echo \"🚀 Executing queued scripts...\"\n    echo \"\"\n    \n    # Clear the queue first\n    echo '[]' > \"$queue_file\"\n    \n    # Execute each script\n    echo \"$scripts\" | while IFS= read -r script_name; do\n      echo \"▶️  Running: $script_name\"\n      \n      # Look for script in multiple locations\n      script_path=\"\"\n      if [ -f \"$scripts_dir/$script_name\" ]; then\n        script_path=\"$scripts_dir/$script_name\"\n      elif [ -f \"$root/$script_name\" ]; then\n        script_path=\"$root/$script_name\"\n      elif [ -f \"$script_name\" ]; then\n        script_path=\"$script_name\"\n      elif command -v \"$script_name\" >/dev/null 2>&1; then\n        # It's a system command\n        script_path=\"$script_name\"\n      fi\n      \n      if [ -n \"$script_path\" ]; then\n        # Make executable if it's a file\n        [ -f \"$script_path\" ] && chmod +x \"$script_path\"\n        \n        # Execute with timeout\n        if command -v timeout >/dev/null 2>&1; then\n          timeout 30 sh -c \"$script_path\" 2>&1 | head -50\n        else\n          sh -c \"$script_path\" 2>&1 | head -50\n        fi\n        \n        exit_code=$?\n        if [ $exit_code -eq 0 ]; then\n          echo \"   ✅ Script completed successfully\"\n        else\n          echo \"   ⚠️  Script exited with code: $exit_code\"\n        fi\n      else\n        echo \"   ❌ Script not found: $script_name\"\n        echo \"   📁 Searched in: .claude/scripts/, project root, PATH\"\n      fi\n      echo \"\"\n    done\n    \n    echo \"✨ All queued scripts processed\"\n    echo \"$(date): Executed $(echo \"$scripts\" | wc -l) scripts\" >> \"$log_file\"\n  fi\nelse\n  # Fallback without jq - basic parsing\n  if grep -q '\"script\"' \"$queue_file\" 2>/dev/null; then\n    echo \"🚀 Executing queued scripts...\"\n    scripts=$(grep -o '\"script\":\"[^\"]*\"' \"$queue_file\" | cut -d'\"' -f4)\n    echo '[]' > \"$queue_file\"\n    \n    echo \"$scripts\" | while IFS= read -r script_name; do\n      [ -z \"$script_name\" ] && continue\n      echo \"▶️  Running: $script_name\"\n      \n      # Simple execution\n      if [ -f \"$root/.claude/scripts/$script_name\" ]; then\n        sh \"$root/.claude/scripts/$script_name\" 2>&1 | head -20\n      elif [ -f \"$root/$script_name\" ]; then\n        sh \"$root/$script_name\" 2>&1 | head -20\n      elif command -v \"$script_name\" >/dev/null 2>&1; then\n        \"$script_name\" 2>&1 | head -20\n      else\n        echo \"   ❌ Script not found: $script_name\"\n      fi\n      echo \"\"\n    done\n  fi\nfi\n\nexit 0"
+  ],
+  "events": ["Stop", "Notification"],
+  "priority": 100,
+  "outputFormat": "text",
+  "exitCodeMap": {
+    "0": "success",
+    "default": "success"
+  },
+  "message": "Script execution complete",
+  "timeout": 60
+}

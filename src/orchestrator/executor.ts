@@ -1,4 +1,4 @@
-import { promises as fs } from 'fs';
+import * as fs from 'fs';
 import * as path from 'path';
 import { spawnSync } from 'child_process';
 import {
@@ -322,8 +322,15 @@ export class HookExecutor {
     const sessionsDir = LogCleaner.getSessionsDir();
     const logFile = path.join(sessionsDir, `session-${event.session_id}.jsonl`);
 
-    // Ensure directory exists
-    await fs.mkdir(sessionsDir, { recursive: true });
+    // Ensure directory exists (sync to ensure it completes)
+    fs.mkdirSync(sessionsDir, { recursive: true });
+
+    // Extract stdout/stderr snippets (first 500 chars of each)
+    const getSnippet = (text: string, maxLength = 500): string | undefined => {
+      if (!text || text.trim().length === 0) return undefined;
+      const trimmed = text.trim();
+      return trimmed.length > maxLength ? trimmed.substring(0, maxLength) + '...' : trimmed;
+    };
 
     // Create log entry
     const logEntry: LogEntry = {
@@ -336,10 +343,16 @@ export class HookExecutor {
       truncated: result.truncated,
       timed_out: result.timedOut,
       flow_control: result.flowControl,
+      command: result.hook.command,
+      tool_name: event.tool_name,
+      message: result.message,
+      stdout_snippet: getSnippet(result.rawOutput),
+      stderr_snippet: result.rawOutput ? undefined : getSnippet(result.message || ''),
+      signal: result.signal || undefined,
     };
 
-    // Append to session log (atomic append)
-    await fs.appendFile(logFile, JSON.stringify(logEntry) + '\n');
+    // Append to session log (sync to ensure it completes before process exit)
+    fs.appendFileSync(logFile, JSON.stringify(logEntry) + '\n');
   }
 
   /**

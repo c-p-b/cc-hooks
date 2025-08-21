@@ -1,0 +1,18 @@
+{
+  "name": "compatibility-pattern-scanner",
+  "description": "Comprehensive scanner for compatibility, mock, and TODO patterns in recent changes",
+  "command": [
+    "sh",
+    "-c",
+    "#!/bin/sh\n# Get the file that was just modified from the event\nread -r event_json\nfile_path=$(echo \"$event_json\" | grep -o '\"file_path\":\"[^\"]*' | cut -d'\"' -f4)\n\nif [ -z \"$file_path\" ]; then\n  exit 0\nfi\n\n# Check if it's a code file\ncase \"$file_path\" in\n  *.js|*.ts|*.jsx|*.tsx|*.py|*.go|*.java|*.c|*.cpp|*.rs|*.rb|*.php|*.swift|*.kt|*.scala|*.sh|*.yaml|*.yml)\n    ;;\n  *)\n    exit 0\n    ;;\nesac\n\n# Define our search patterns\npatterns='(TODO|FIXME|HACK|XXX|TEMP|temporary|workaround|kludge|mock|stub|fake|dummy|placeholder|compat|backward|legacy|deprecated|fallback|polyfill|shim|not[[:space:]]implemented|unimplemented|noop|no-?op|pass[[:space:]]through|passthrough|future|pending|later|eventually|soon|adapter|bridge|wrapper|proxy[[:space:]]pattern|v[0-9]+[[:space:]]compat|old[[:space:]]version|new[[:space:]]version|migration|upgrade[[:space:]]path)'\n\n# Check if file exists and scan it\nif [ -f \"$file_path\" ]; then\n  # Try to get just the changes first, fall back to scanning whole file (limited)\n  changes=$(git diff HEAD -- \"$file_path\" 2>/dev/null | grep '^+' | grep -v '^+++' || head -50 \"$file_path\")\n  \n  # Search for patterns\n  found=$(echo \"$changes\" | grep -iE \"$patterns\" | head -10)\n  \n  if [ -n \"$found\" ]; then\n    echo \"⚠️  Pattern Analysis for $file_path:\"\n    echo \"\"\n    \n    # Categorize findings\n    todo_count=$(echo \"$found\" | grep -icE '(TODO|FIXME|HACK|XXX|TEMP)' || echo 0)\n    mock_count=$(echo \"$found\" | grep -icE '(mock|stub|fake|dummy|placeholder)' || echo 0)\n    compat_count=$(echo \"$found\" | grep -icE '(compat|legacy|deprecated|fallback|polyfill|shim|backward)' || echo 0)\n    incomplete_count=$(echo \"$found\" | grep -icE '(not[[:space:]]implemented|unimplemented|noop|no-?op)' || echo 0)\n    \n    if [ \"$todo_count\" -gt 0 ]; then\n      echo \"🔴 Found $todo_count TODO/FIXME markers - these need attention\"\n    fi\n    \n    if [ \"$mock_count\" -gt 0 ]; then\n      echo \"🟡 Found $mock_count mock/stub patterns - verify these are in test files\"\n    fi\n    \n    if [ \"$compat_count\" -gt 0 ]; then\n      echo \"🔵 Found $compat_count compatibility patterns - ensure documentation exists\"\n    fi\n    \n    if [ \"$incomplete_count\" -gt 0 ]; then\n      echo \"🟠 Found $incomplete_count unimplemented sections - plan implementation\"\n    fi\n    \n    echo \"\"\n    echo \"First few matches:\"\n    echo \"$found\" | head -3 | sed 's/^/  > /'\n    \n    # Provide actionable advice\n    echo \"\"\n    echo \"💡 Recommendations:\"\n    [ \"$todo_count\" -gt 0 ] && echo \"  • Address TODO/FIXME items before merging\"\n    [ \"$mock_count\" -gt 0 ] && echo \"  • Ensure mocks are only in test directories\"\n    [ \"$compat_count\" -gt 0 ] && echo \"  • Document compatibility requirements in README\"\n    [ \"$incomplete_count\" -gt 0 ] && echo \"  • Create tickets for unimplemented features\"\n  fi\nfi\n\nexit 0"
+  ],
+  "events": ["PostToolUse"],
+  "priority": 90,
+  "outputFormat": "text",
+  "exitCodeMap": {
+    "0": "success",
+    "default": "success"
+  },
+  "message": "Code quality scan complete",
+  "timeout": 10
+}

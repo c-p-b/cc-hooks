@@ -1,0 +1,12 @@
+{
+  "name": "userprompt-rewrite-ultrahink",
+  "description": "Substitute '-u' with 'ultrathink. Take as much time as you need.' in user prompts",
+  "command": [
+    "node",
+    "-e",
+    "let d='';process.stdin.setEncoding('utf8');process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const e=JSON.parse(d);const p=(e.prompt||'');if(/(^|\\s)-u(\\s|$)/.test(p)){const newPrompt=p.replace(/(^|\\s)-u(\\s|$)/g,'$1ultrathink. Take as much time as you need.$2');const out={decision:'continue',prompt:newPrompt};process.stdout.write(JSON.stringify(out));process.exit(0);}else{process.exit(0);}}catch(err){process.exit(0)}});"
+  ],
+  "events": ["UserPromptSubmit"],
+  "outputFormat": "structured",
+  "timeout": 10
+}

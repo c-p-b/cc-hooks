@@ -139,4 +139,12 @@ export interface LogEntry {
   truncated: boolean;
   timed_out: boolean;
   flow_control: FlowControlAction;
+
+  // Additional context for better debugging
+  command?: string[];
+  tool_name?: string;
+  message?: string;
+  stdout_snippet?: string;
+  stderr_snippet?: string;
+  signal?: string;
 }
