@@ -20,7 +20,7 @@ try {
       break;
     }
   }
-} catch (error) {
+} catch {
   // If we can't read package.json, use the fallback
 }
 
