@@ -1,5 +1,5 @@
 {
-  "name": "userprompt-rewrite-ultrahink",
+  "name": "userprompt-rewrite-ultrathink",
   "description": "Substitute '-u' with 'ultrathink. Take as much time as you need.' in user prompts",
   "command": [
     "node",
