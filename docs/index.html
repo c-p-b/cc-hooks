@@ -197,23 +197,23 @@
         </div>
         <div style="height: 10px"></div>
         <div class="code">
-          <button class="copy" data-copy="npm install -g cc-hooks" aria-label="Copy command" title="Copy">
+          <button class="copy" data-copy="npm install -g @c-p-b/cc-hooks" aria-label="Copy command" title="Copy">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
               <rect x="9" y="9" width="10" height="10" rx="2" ry="2"></rect>
               <rect x="5" y="5" width="10" height="10" rx="2" ry="2"></rect>
             </svg>
           </button>
-          <pre>npm install -g cc-hooks</pre>
+          <pre>npm install -g @c-p-b/cc-hooks</pre>
         </div>
         <div style="height: 8px"></div>
         <div class="code">
-          <button class="copy" data-copy="cc-hooks init && cc-hooks install typescript-lint" aria-label="Copy command" title="Copy">
+          <button class="copy" data-copy="cc-hooks init && cc-hooks install typescript" aria-label="Copy command" title="Copy">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
               <rect x="9" y="9" width="10" height="10" rx="2" ry="2"></rect>
               <rect x="5" y="5" width="10" height="10" rx="2" ry="2"></rect>
             </svg>
           </button>
-          <pre>cc-hooks init &&<wbr> cc-hooks install typescript-lint</pre>
+          <pre>cc-hooks init &&<wbr> cc-hooks install typescript</pre>
         </div>
         <p class="note" style="margin-top: 8px">Works on macOS and Linux. Windows users: use WSL/WSL2.</p>
       </div>
@@ -225,13 +225,13 @@
         <div class="panel">
           <h3>Global install</h3>
           <div class="code">
-            <button class="copy" data-copy="npm install -g cc-hooks" aria-label="Copy command" title="Copy">
+            <button class="copy" data-copy="npm install -g @c-p-b/cc-hooks" aria-label="Copy command" title="Copy">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
                 <rect x="9" y="9" width="10" height="10" rx="2" ry="2"></rect>
                 <rect x="5" y="5" width="10" height="10" rx="2" ry="2"></rect>
               </svg>
             </button>
-            <pre>npm install -g cc-hooks</pre>
+            <pre>npm install -g @c-p-b/cc-hooks</pre>
           </div>
           <ul>
             <li>Requires Node.js 18, 20, or 22</li>
@@ -257,13 +257,13 @@
         <div class="panel">
           <h3>Install a template</h3>
           <div class="code">
-            <button class="copy" data-copy="cc-hooks install typescript-lint" aria-label="Copy command" title="Copy">
+            <button class="copy" data-copy="cc-hooks install typescript" aria-label="Copy command" title="Copy">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
                 <rect x="9" y="9" width="10" height="10" rx="2" ry="2"></rect>
                 <rect x="5" y="5" width="10" height="10" rx="2" ry="2"></rect>
               </svg>
             </button>
-            <pre>cc-hooks<wbr> install typescript-lint</pre>
+            <pre>cc-hooks<wbr> install typescript</pre>
           </div>
           <ul>
             <li>Also available: <code>typescript-format</code>, <code>python-lint</code>, <code>session-context</code>, <code>git-commit-msg</code></li>
@@ -283,7 +283,7 @@
         </div>
         <div class="panel">
           <h3>2. Add a few hooks</h3>
-          <div class="code"><pre>cc-hooks install typescript-lint
+          <div class="code"><pre>cc-hooks install typescript
 cc-hooks install typescript-format
 cc-hooks install python-lint
 cc-hooks install session-context
@@ -339,7 +339,7 @@ cc-hooks install git-commit-msg</pre></div>
 echo '{"session_id":"demo","transcript_path":"/tmp/demo.jsonl","cwd":"'"$(pwd)"'","hook_event_name":"PostToolUse","tool_name":"Write","tool_input":{"file_path":"demo.ts"}}' | cc-hooks run</pre></div>
           <ul>
             <li><code>typescript-format</code> blocks on Prettier issues</li>
-            <li><code>typescript-lint</code> reports non-blocking warnings</li>
+            <li><code>typescript</code> reports non-blocking warnings</li>
           </ul>
         </div>
         <div class="panel">
@@ -373,7 +373,7 @@ echo '{"session_id":"demo","transcript_path":"/tmp/demo.jsonl","cwd":"'"$(pwd)"'
 }</pre></div>
         <div class="code"><pre>cc-hooks install ./my-hook.json
 cc-hooks show --verbose</pre></div>
-        <p class="note">Prefer structured hooks for richer decisions and diagnostics (see <code>HOOKS_REFERENCE.md</code>).</p>
+        <p class="note">Prefer structured hooks for richer decisions and diagnostics.</p>
       </div>
     </section>
 
@@ -398,31 +398,20 @@ cc-hooks show --verbose</pre></div>
           </ul>
         </div>
         <div class="panel">
-          <h3>Templates included today</h3>
+          <h3>Available Template Bundles</h3>
           <ul>
-            <li><code>typescript-lint</code> — ESLint on TS</li>
-            <li><code>typescript-format</code> — Prettier check</li>
-            <li><code>python-lint</code> — Ruff</li>
-            <li><code>session-context</code> — Git status at session start</li>
-            <li><code>git-commit-msg</code> — Conventional commits</li>
+            <li><code>typescript</code> — ESLint, Prettier, tests, coverage</li>
+            <li><code>python</code> — Ruff linting</li>
+            <li><code>git</code> — Conventional commit validation</li>
+            <li><code>session</code> — Context, init, transcript saving</li>
+            <li><code>analysis</code> — Code quality & patterns</li>
+            <li><code>automation</code> — Script runners & processors</li>
           </ul>
         </div>
       </div>
       <p class="note">Want installers for your team? Add JSON files under <code>templates/</code> or publish a Git repo with a <code>hook.json</code>.</p>
     </section>
 
-    <section id="safety">
-      <h2>Safety notes</h2>
-      <div class="panel">
-        <ul>
-          <li>Hooks run your commands. Review templates and scripts before installing.</li>
-          <li>Use absolute paths and <code>$CLAUDE_PROJECT_DIR</code> for reliability.</li>
-          <li>Respect secrets: avoid dumping env or keys to logs/stdout.</li>
-          <li>On Windows, use WSL/WSL2 for now.</li>
-        </ul>
-        <p class="note">See the full reference and best practices in <a href="https://github.com/c-p-b/cc-hooks/blob/main/HOOKS_REFERENCE.md">HOOKS_REFERENCE.md</a>.</p>
-      </div>
-    </section>
 
     <footer class="footer">
       <div>Made for developers who love fast feedback loops. Try <code>cc-hooks init</code> and add a template in under a minute.</div>

@@ -5,7 +5,7 @@ A universal, stable, and user-friendly hook management system for Claude Code.
 ## Installation
 
 ```bash
-npm install -g cc-hooks
+npm install -g @c-p-b/cc-hooks
 ```
 
 ## Quick Start
@@ -16,10 +16,12 @@ cc-hooks init
 
 # Install hooks - three options:
 # Option 1: Install a complete bundle (multiple related hooks)
-cc-hooks install typescript        # Installs eslint, prettier, type-check, tests, etc.
+cc-hooks install typescript        # Installs all TypeScript hooks (eslint, prettier, tests, etc.)
+cc-hooks install python           # Installs all Python hooks
 
-# Option 2: Install individual hooks
-cc-hooks install typescript-lint   # Just the linter
+# Option 2: Install individual hooks from templates
+cc-hooks install templates/typescript/eslint-post.json   # Just ESLint
+cc-hooks install templates/git/conventional-commits.json # Git commit validation
 
 # Option 3: Install from local files or directories
 cc-hooks install ./my-hook.json   # Single hook file
@@ -39,6 +41,19 @@ cc-hooks logs                     # View recent logs (including test runs)
 cc-hooks logs --details           # Show detailed output snippets
 cc-hooks logs --stats             # Show execution statistics
 ```
+
+## Available Templates
+
+### Bundles (install all hooks in a category)
+- `typescript` - ESLint, Prettier, type checking, unit tests, coverage
+- `python` - Ruff linting
+- `git` - Conventional commit message validation
+- `session` - Context loading, initialization, transcript saving
+- `analysis` - Code quality, compatibility, and pattern scanning
+- `automation` - Script runners and prompt processors
+
+### Individual Hooks
+Browse all available hooks in the `templates/` directory, organized by category.
 
 ## Development
 
