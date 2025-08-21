@@ -1,12 +1,30 @@
 import { ResourceLimits } from './types';
-import path from 'path';
-import os from 'os';
-import fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import * as fs from 'fs';
 
 // Version - read from package.json
-const packagePath = path.join(__dirname, '..', '..', 'package.json');
-const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf-8'));
-export const VERSION = packageJson.version;
+// Try multiple paths to handle both development and production
+let VERSION = '0.1.3'; // fallback
+try {
+  const possiblePaths = [
+    path.join(__dirname, '..', '..', 'package.json'), // from dist
+    path.join(__dirname, '..', '..', '..', 'package.json'), // from src in tests
+    path.join(process.cwd(), 'package.json'), // current working directory
+  ];
+  
+  for (const packagePath of possiblePaths) {
+    if (fs.existsSync(packagePath)) {
+      const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf-8'));
+      VERSION = packageJson.version;
+      break;
+    }
+  }
+} catch (error) {
+  // If we can't read package.json, use the fallback
+}
+
+export { VERSION };
 
 // File paths
 export const CONFIG_FILE_NAME = 'cc-hooks.json';
