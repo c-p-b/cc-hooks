@@ -11,6 +11,8 @@ export interface LogsOptions {
   failed?: boolean; // Show failed hooks only
   limit?: number; // Number of entries to show
   verbose?: boolean; // Show full output
+  details?: boolean; // Show detailed info including output snippets
+  stats?: boolean; // Show summary statistics
 }
 
 export class LogsCommand {
@@ -46,8 +48,14 @@ export class LogsCommand {
       return;
     }
 
+    // Show statistics if requested
+    if (options.stats) {
+      this.displayStats(entries);
+      console.log(''); // Blank line separator
+    }
+
     // Display entries
-    this.displayEntries(entries, options.verbose);
+    this.displayEntries(entries, options);
   }
 
   private async tailLogs(hookName: string | undefined, options: LogsOptions): Promise<void> {
@@ -91,7 +99,7 @@ export class LogsCommand {
     // Display existing entries
     if (existingEntries.length > 0) {
       const toShow = existingEntries.slice(-20); // Show last 20
-      this.displayEntries(toShow, options.verbose);
+      this.displayEntries(toShow, options);
       console.log(chalk.gray('---'));
     }
 
@@ -124,7 +132,7 @@ export class LogsCommand {
             try {
               const entry = JSON.parse(line) as LogEntry;
               if (this.matchesFilter(entry, hookName, options)) {
-                this.displayEntry(entry, options.verbose);
+                this.displayEntry(entry, options);
               }
             } catch {
               // Skip malformed lines
@@ -202,13 +210,13 @@ export class LogsCommand {
     return files;
   }
 
-  private displayEntries(entries: LogEntry[], verbose?: boolean): void {
+  private displayEntries(entries: LogEntry[], options: LogsOptions): void {
     for (const entry of entries) {
-      this.displayEntry(entry, verbose);
+      this.displayEntry(entry, options);
     }
   }
 
-  private displayEntry(entry: LogEntry, verbose?: boolean): void {
+  private displayEntry(entry: LogEntry, options: LogsOptions): void {
     const timestamp = new Date(entry.timestamp).toLocaleTimeString();
     const statusColor = this.getStatusColor(entry.flow_control);
     const status = chalk[statusColor](entry.flow_control.toUpperCase());
@@ -227,13 +235,109 @@ export class LogsCommand {
       line += chalk.yellow(' [TRUNCATED]');
     }
 
+    if (entry.signal) {
+      line += chalk.red(` [SIGNAL: ${entry.signal}]`);
+    }
+
     console.log(line);
 
-    if (verbose) {
-      if (entry.exit_code !== null) {
-        console.log(chalk.gray(`  Exit code: ${entry.exit_code}`));
+    // Show command if verbose or details mode
+    if ((options.verbose || options.details) && entry.command) {
+      console.log(chalk.gray(`  Command: ${entry.command.join(' ')}`));
+    }
+
+    // Show tool name if available
+    if ((options.verbose || options.details) && entry.tool_name) {
+      console.log(chalk.gray(`  Tool: ${entry.tool_name}`));
+    }
+
+    // Show exit code in verbose mode
+    if (options.verbose && entry.exit_code !== null) {
+      console.log(chalk.gray(`  Exit code: ${entry.exit_code}`));
+    }
+
+    // Show message if available (usually error messages)
+    if ((options.verbose || options.details) && entry.message) {
+      console.log(chalk.yellow(`  Message: ${entry.message}`));
+    }
+
+    // Show output snippets in details mode
+    if (options.details) {
+      if (entry.stdout_snippet) {
+        console.log(chalk.green('  Output:'));
+        entry.stdout_snippet.split('\n').forEach((line) => {
+          console.log(chalk.gray(`    ${line}`));
+        });
       }
+      if (entry.stderr_snippet) {
+        console.log(chalk.red('  Errors:'));
+        entry.stderr_snippet.split('\n').forEach((line) => {
+          console.log(chalk.gray(`    ${line}`));
+        });
+      }
+    }
+
+    // Show session in verbose mode
+    if (options.verbose) {
       console.log(chalk.gray(`  Session: ${entry.session_id}`));
+    }
+  }
+
+  private displayStats(entries: LogEntry[]): void {
+    const totalHooks = entries.length;
+    const successCount = entries.filter((e) => e.flow_control === 'success').length;
+    const nonBlockingErrors = entries.filter((e) => e.flow_control === 'non-blocking-error').length;
+    const blockingErrors = entries.filter((e) => e.flow_control === 'blocking-error').length;
+    const timeouts = entries.filter((e) => e.timed_out).length;
+
+    const avgDuration = entries.reduce((sum, e) => sum + e.duration, 0) / entries.length;
+    const maxDuration = Math.max(...entries.map((e) => e.duration));
+
+    // Group by hook name
+    const hookStats = new Map<string, { count: number; failures: number; avgDuration: number }>();
+    entries.forEach((entry) => {
+      const stats = hookStats.get(entry.hook) || { count: 0, failures: 0, avgDuration: 0 };
+      stats.count++;
+      if (entry.flow_control !== 'success') stats.failures++;
+      stats.avgDuration = (stats.avgDuration * (stats.count - 1) + entry.duration) / stats.count;
+      hookStats.set(entry.hook, stats);
+    });
+
+    console.log(chalk.bold('=== Execution Statistics ==='));
+    console.log(`Total executions: ${totalHooks}`);
+    console.log(
+      `  ${chalk.green(`✓ Success: ${successCount}`)} (${((successCount / totalHooks) * 100).toFixed(1)}%)`,
+    );
+    console.log(
+      `  ${chalk.yellow(`⚠ Non-blocking errors: ${nonBlockingErrors}`)} (${((nonBlockingErrors / totalHooks) * 100).toFixed(1)}%)`,
+    );
+    console.log(
+      `  ${chalk.red(`✗ Blocking errors: ${blockingErrors}`)} (${((blockingErrors / totalHooks) * 100).toFixed(1)}%)`,
+    );
+    if (timeouts > 0) {
+      console.log(`  ${chalk.red(`⏱ Timeouts: ${timeouts}`)}`);
+    }
+
+    console.log(`\nPerformance:`);
+    console.log(`  Average duration: ${avgDuration.toFixed(0)}ms`);
+    console.log(`  Max duration: ${maxDuration}ms`);
+
+    if (hookStats.size > 1) {
+      console.log(`\nPer-hook breakdown:`);
+      Array.from(hookStats.entries())
+        .sort((a, b) => b[1].count - a[1].count)
+        .forEach(([name, stats]) => {
+          const failRate = ((stats.failures / stats.count) * 100).toFixed(0);
+          const statusIcon =
+            stats.failures === 0 ? '✓' : stats.failures === stats.count ? '✗' : '⚠';
+          const statusColor =
+            stats.failures === 0 ? 'green' : stats.failures === stats.count ? 'red' : 'yellow';
+          console.log(
+            chalk[statusColor](
+              `  ${statusIcon} ${name}: ${stats.count} runs, ${failRate}% fail rate, ${stats.avgDuration.toFixed(0)}ms avg`,
+            ),
+          );
+        });
     }
   }
 
