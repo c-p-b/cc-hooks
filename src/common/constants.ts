@@ -12,7 +12,7 @@ try {
     path.join(__dirname, '..', '..', '..', 'package.json'), // from src in tests
     path.join(process.cwd(), 'package.json'), // current working directory
   ];
-  
+
   for (const packagePath of possiblePaths) {
     if (fs.existsSync(packagePath)) {
       const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf-8'));
