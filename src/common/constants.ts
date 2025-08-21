@@ -1,9 +1,12 @@
 import { ResourceLimits } from './types';
 import path from 'path';
 import os from 'os';
+import fs from 'fs';
 
-// Version
-export const VERSION = '0.1.0';
+// Version - read from package.json
+const packagePath = path.join(__dirname, '..', '..', 'package.json');
+const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf-8'));
+export const VERSION = packageJson.version;
 
 // File paths
 export const CONFIG_FILE_NAME = 'cc-hooks.json';
